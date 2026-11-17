@@ -3,8 +3,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>Ujian Online</title>
 
@@ -31,6 +30,12 @@
       margin: 0;
     }
 
+    #start {
+      padding: 15px;
+      max-width: 600px;
+      margin: auto;
+    }
+
     #warning {
       display: none;
       background: #fee2e2;
@@ -42,10 +47,11 @@
       border-radius: 8px;
     }
 
-    #start {
-      padding: 15px;
-      max-width: 600px;
-      margin: auto;
+    #violationCount {
+      display: none;
+      color: #b91c1c;
+      font-weight: bold;
+      padding: 8px;
     }
 
     .volume-check {
@@ -94,13 +100,13 @@
       width: 100%;
     }
 
-    .test-button {
-      background: #ea580c;
-    }
-
-    #startExamButton:disabled {
+    button:disabled {
       background: #9ca3af;
       cursor: not-allowed;
+    }
+
+    .test-button {
+      background: #ea580c;
     }
 
     #exam {
@@ -111,29 +117,78 @@
       background: white;
     }
 
-    #violationCount {
-      display: none;
-      color: #b91c1c;
-      font-weight: bold;
-      padding: 8px;
-    }
-
     footer {
       color: #6b7280;
       font-size: 12px;
       padding: 15px;
+    }
+
+    /* HALAMAN KUNCI UJIAN */
+
+    #lockScreen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: #111827;
+      color: white;
+      padding: 20px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lock-card {
+      background: white;
+      color: #1f2937;
+      padding: 25px;
+      border-radius: 15px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .lock-icon {
+      font-size: 55px;
+      margin-bottom: 10px;
+    }
+
+    .lock-card h2 {
+      color: #dc2626;
+    }
+
+    .lock-card input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 16px;
+      margin: 12px 0;
+    }
+
+    .lock-card button {
+      background: #16a34a;
+    }
+
+    #passwordError {
+      color: #dc2626;
+      font-size: 14px;
+      display: none;
     }
   </style>
 </head>
 
 <body>
 
+  <!-- HEADER -->
+
   <header>
     <h2>UJIAN ONLINE</h2>
     <p>Sistem Pengawasan Ujian</p>
   </header>
 
+
   <!-- PERINGATAN PELANGGARAN -->
+
   <div id="warning">
     ⚠️ PERINGATAN!
 
@@ -143,14 +198,16 @@
 
     <br>
 
-    Jangan mengulangi tindakan ini!
+    Ujian dikunci. Hubungi pengawas untuk melanjutkan.
   </div>
 
   <div id="violationCount">
     Jumlah pelanggaran: 0
   </div>
 
+
   <!-- HALAMAN AWAL -->
+
   <div id="start">
 
     <h3>Selamat Mengerjakan</h3>
@@ -160,7 +217,9 @@
       memulai ujian.
     </p>
 
+
     <!-- PENGECEKAN VOLUME -->
+
     <div class="volume-check">
 
       <h3>🔊 PENGECEKAN VOLUME HP</h3>
@@ -202,6 +261,7 @@
 
     </div>
 
+
     <p>
       Jangan keluar dari halaman ujian atau membuka
       aplikasi lain selama ujian berlangsung.
@@ -218,7 +278,9 @@
 
   </div>
 
+
   <!-- GOOGLE FORMS -->
+
   <iframe
     id="exam"
     src="https://docs.google.com/forms/d/e/1FAIpQLScNVGLwyNF-BsAChJkrHLZBaL8dLOBmL4Z1mkWfu3PkxeMO2A/viewform?embedded=true"
@@ -231,15 +293,62 @@
 
   </iframe>
 
+
+  <!-- HALAMAN UJIAN TERKUNCI -->
+
+  <div id="lockScreen">
+
+    <div class="lock-card">
+
+      <div class="lock-icon">🔒</div>
+
+      <h2>UJIAN TERKUNCI</h2>
+
+      <p>
+        Kamu telah meninggalkan halaman ujian.
+      </p>
+
+      <p>
+        Untuk melanjutkan ujian, masukkan password
+        yang diberikan oleh pengawas.
+      </p>
+
+      <input
+        type="password"
+        id="unlockPassword"
+        placeholder="Masukkan password pengawas"
+        autocomplete="off">
+
+      <button onclick="unlockExam()">
+        BUKA KUNCI UJIAN
+      </button>
+
+      <p id="passwordError">
+        Password salah! Silakan coba kembali.
+      </p>
+
+      <p style="font-size:12px;color:#6b7280;">
+        Hubungi pengawas jika belum mendapatkan password.
+      </p>
+
+    </div>
+
+  </div>
+
+
   <footer>
     Sistem Ujian Online
   </footer>
 
+
   <script>
 
-    // ==================================
-    // VARIABEL SISTEM
-    // ==================================
+    // =====================================
+    // PENGATURAN SISTEM
+    // =====================================
+
+    // GANTI PASSWORD INI
+    const ADMIN_PASSWORD = "UJIAN2026";
 
     let examStarted = false;
     let leftPage = false;
@@ -248,9 +357,9 @@
     let volumeTested = false;
 
 
-    // ==================================
+    // =====================================
     // INISIALISASI AUDIO
-    // ==================================
+    // =====================================
 
     function initializeAudio() {
 
@@ -271,9 +380,9 @@
     }
 
 
-    // ==================================
+    // =====================================
     // MEMBUAT SUARA ALARM
-    // ==================================
+    // =====================================
 
     async function playAlarm() {
 
@@ -297,12 +406,11 @@
         oscillator.type = "square";
         oscillator.frequency.value = 1000;
 
-        // Kekuatan sinyal suara
+        // Kekuatan sinyal audio
         gain.gain.value = 0.8;
 
         oscillator.start();
 
-        // Alarm berbunyi selama 1 detik
         await new Promise(resolve => {
           setTimeout(resolve, 1000);
         });
@@ -310,10 +418,13 @@
         oscillator.stop();
 
       } catch (error) {
+
         console.log("Alarm audio gagal:", error);
+
       }
 
       // Getaran HP
+
       if (navigator.vibrate) {
         navigator.vibrate([300, 150, 300]);
       }
@@ -321,9 +432,9 @@
     }
 
 
-    // ==================================
+    // =====================================
     // TES SUARA ALARM
-    // ==================================
+    // =====================================
 
     async function testAlarm() {
 
@@ -354,9 +465,9 @@
     }
 
 
-    // ==================================
-    // CEK PERSETUJUAN VOLUME
-    // ==================================
+    // =====================================
+    // CEK KONFIRMASI VOLUME
+    // =====================================
 
     function checkVolume() {
 
@@ -369,9 +480,9 @@
     }
 
 
-    // ==================================
+    // =====================================
     // MULAI UJIAN
-    // ==================================
+    // =====================================
 
     async function startExam() {
 
@@ -389,16 +500,109 @@
 
       examStarted = true;
 
-      document.getElementById("start").style.display = "none";
+      // Simpan status ujian
+      sessionStorage.setItem("examStarted", "true");
 
-      document.getElementById("exam").style.display = "block";
+      document.getElementById("start").style.display =
+        "none";
+
+      document.getElementById("exam").style.display =
+        "block";
 
     }
 
 
-    // ==================================
-    // SISTEM DETEKSI KELUAR HALAMAN
-    // ==================================
+    // =====================================
+    // KUNCI UJIAN
+    // =====================================
+
+    function lockExam() {
+
+      sessionStorage.setItem("examLocked", "true");
+
+      document.getElementById("exam").style.display =
+        "none";
+
+      document.getElementById("lockScreen").style.display =
+        "flex";
+
+      document.getElementById("unlockPassword").value =
+        "";
+
+      document.getElementById("passwordError").style.display =
+        "none";
+
+      document.getElementById("warning").style.display =
+        "block";
+
+    }
+
+
+    // =====================================
+    // BUKA KUNCI UJIAN
+    // =====================================
+
+    async function unlockExam() {
+
+      const password =
+        document.getElementById("unlockPassword").value;
+
+      if (password === ADMIN_PASSWORD) {
+
+        // Coba aktifkan audio kembali
+        if (audioContext) {
+          try {
+            await audioContext.resume();
+          } catch (error) {
+            console.log(error);
+          }
+        }
+
+        sessionStorage.removeItem("examLocked");
+
+        document.getElementById("lockScreen").style.display =
+          "none";
+
+        document.getElementById("exam").style.display =
+          "block";
+
+        document.getElementById("warning").style.display =
+          "none";
+
+        leftPage = false;
+
+        alert("Password benar. Ujian dapat dilanjutkan.");
+
+      } else {
+
+        document.getElementById("passwordError").style.display =
+          "block";
+
+        document.getElementById("unlockPassword").value =
+          "";
+
+      }
+
+    }
+
+
+    // =====================================
+    // ENTER UNTUK MEMASUKKAN PASSWORD
+    // =====================================
+
+    document.getElementById("unlockPassword")
+      .addEventListener("keydown", function(event) {
+
+        if (event.key === "Enter") {
+          unlockExam();
+        }
+
+      });
+
+
+    // =====================================
+    // DETEKSI KELUAR DARI HALAMAN
+    // =====================================
 
     document.addEventListener(
       "visibilitychange",
@@ -414,10 +618,8 @@
         } else if (leftPage) {
 
           // Siswa kembali ke halaman ujian
-          violations++;
 
-          document.getElementById("warning").style.display =
-            "block";
+          violations++;
 
           document.getElementById("violationCount").style.display =
             "block";
@@ -425,15 +627,11 @@
           document.getElementById("violationCount").innerText =
             "Jumlah pelanggaran: " + violations;
 
-          // Bunyi alarm
+          // Keluarkan alarm
           await playAlarm();
 
-          // Peringatan
-          alert(
-            "⚠️ PERINGATAN!\n\n" +
-            "Kamu telah meninggalkan halaman ujian.\n\n" +
-            "Jumlah pelanggaran: " + violations
-          );
+          // Kunci ujian
+          lockExam();
 
           leftPage = false;
 
@@ -441,6 +639,25 @@
 
       }
     );
+
+
+    // =====================================
+    // PEMULIHAN STATUS SETELAH REFRESH
+    // =====================================
+
+    if (sessionStorage.getItem("examStarted") === "true") {
+
+      examStarted = true;
+
+      // Jika ujian pernah dimulai, minta password
+      // setelah halaman dimuat ulang.
+      violations = Number(
+        sessionStorage.getItem("violations") || 0
+      );
+
+      lockExam();
+
+    }
 
 
   </script>

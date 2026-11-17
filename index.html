@@ -26,20 +26,23 @@ button:disabled{background:#9ca3af;cursor:not-allowed}
 #exam{display:none;width:100%;height:calc(100vh - 40px);border:none;background:#fff}
 #end{display:none;padding:40px 20px}
 footer{color:#6b7280;font-size:12px;padding:12px}
-#lockScreen{display:none;position:fixed;inset:0;z-index:99999;background:#111827;padding:20px;align-items:center;justify-content:center;overflow:auto}
+#lockScreen,#finishScreen{display:none;position:fixed;inset:0;z-index:99999;background:#111827;padding:20px;align-items:center;justify-content:center;overflow:auto}
 .lock-card{background:#fff;padding:25px;border-radius:15px;width:100%;max-width:400px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
 .lock-icon{font-size:55px}
 .lock-card h2{color:#dc2626;margin:6px 0}
 .lock-card button{background:#16a34a}
 #reason{background:#fee2e2;color:#b91c1c;padding:10px;border-radius:8px;font-weight:bold;font-size:14px}
 #passwordError{color:#dc2626;font-size:14px;display:none}
+#bar button{width:auto;margin:0;padding:6px 12px;font-size:13px;background:#16a34a}
+.btn-gray{background:#6b7280!important}
+#finishError{color:#dc2626;font-size:14px;display:none}
 @media(prefers-color-scheme:dark){body{background:#0f172a;color:#e5e7eb}.card{background:#1e293b;border-color:#334155}.vol{background:#431407;color:#fed7aa}.field{background:#0f172a;color:#e5e7eb;border-color:#475569}}
 </style>
 </head>
 <body>
 
 <header><h2>UJIAN ONLINE</h2><p>Sistem Pengawasan Ujian</p></header>
-<div id="bar"><span id="who"></span><span id="timer"></span><span>Pelanggaran: <b id="vc">0</b>/<span id="vmax"></span></span></div>
+<div id="bar"><span id="who"></span><span id="timer"></span><span>Pelanggaran: <b id="vc">0</b>/<span id="vmax"></span></span><button onclick="openFinish()">✅ Selesai</button></div>
 
 <div id="start">
   <h3>Selamat Mengerjakan</h3>
@@ -59,6 +62,7 @@ footer{color:#6b7280;font-size:12px;padding:12px}
       <li>Dilarang me-refresh, menutup, atau menekan tombol kembali.</li>
       <li>Dilarang mengubah ukuran jendela (split screen) atau memutus koneksi internet.</li>
       <li>Setiap pelanggaran: alarm berbunyi, ujian terkunci, dan dicatat. Pelanggaran ke-<span class="maxText"></span> menghentikan ujian.</li>
+      <li>Setelah selesai mengisi dan mengirim form, tekan tombol <b>Selesai</b>, lalu serahkan HP ke pengawas untuk dikonfirmasi dengan kode selesai.</li>
     </ul>
     <label><input type="checkbox" id="agree" onchange="checkReady()"> Saya sudah membaca dan menyetujui aturan di atas.</label>
   </div>
@@ -83,6 +87,19 @@ footer{color:#6b7280;font-size:12px;padding:12px}
 
 <div id="end"><h2>✅ Ujian Selesai</h2><p id="endMsg"></p></div>
 
+<div id="finishScreen">
+  <div class="lock-card">
+    <div class="lock-icon">📱</div>
+    <h2 style="color:#16a34a">SELESAI UJIAN?</h2>
+    <p>Pastikan jawaban sudah dikirim (muncul tulisan "Jawaban Anda telah direkam").</p>
+    <p><b>Serahkan HP ke pengawas.</b> Pengawas akan memasukkan kode selesai.</p>
+    <input class="field" type="password" id="finishCode" placeholder="Kode selesai (diisi pengawas)" autocomplete="off">
+    <button onclick="confirmFinish()">KONFIRMASI SELESAI</button>
+    <p id="finishError">Kode salah!</p>
+    <button class="btn-gray" onclick="closeFinish()">Kembali mengerjakan</button>
+  </div>
+</div>
+
 <div id="lockScreen">
   <div class="lock-card">
     <div class="lock-icon">🔒</div>
@@ -104,6 +121,7 @@ footer{color:#6b7280;font-size:12px;padding:12px}
 const CONFIG = {
   ADMIN_PASSWORD: "UJIAN2026",        // password buka kunci biasa
   FINAL_PASSWORD: "PENGAWAS2026",     // password jika pelanggaran sudah mencapai batas
+  FINISH_PASSWORD: "SELESAI2026",      // kode selesai: dimasukkan pengawas setelah HP diserahkan
   MAX_VIOLATIONS: 3,                  // batas pelanggaran
   EXAM_MINUTES: 60,                   // 0 = tanpa timer
   REQUIRE_FULLSCREEN: true,
@@ -251,7 +269,7 @@ function runTimer(){
 function finishExam(msg){
   stopAlarm(); clearInterval(timerId);
   S.started = false; S.locked = false; S.finished = true; save();
-  $("exam").style.display = "none"; $("lockScreen").style.display = "none"; $("bar").style.display = "none";
+  $("exam").style.display = "none"; $("lockScreen").style.display = "none"; $("finishScreen").style.display = "none"; $("bar").style.display = "none";
   $("end").style.display = "block"; $("endMsg").innerText = msg;
   if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
   report("selesai", msg);
@@ -278,6 +296,7 @@ function violation(reason){
 function showLock(){
   const final = S.violations >= CONFIG.MAX_VIOLATIONS;
   $("exam").style.display = "none";
+  $("finishScreen").style.display = "none";
   $("lockScreen").style.display = "flex";
   $("vc").innerText = S.violations;
   $("reason").innerText = "Pelanggaran ke-" + S.violations + ": " + S.reason;
@@ -292,6 +311,7 @@ function showLock(){
 async function unlockExam(){
   const final = S.violations >= CONFIG.MAX_VIOLATIONS;
   const need = final ? CONFIG.FINAL_PASSWORD : CONFIG.ADMIN_PASSWORD;
+  if($("unlockPassword").value === CONFIG.FINISH_PASSWORD){ finishExam("Ujian diselesaikan oleh pengawas."); return; }
   if($("unlockPassword").value !== need){
     $("passwordError").style.display = "block"; $("unlockPassword").value = ""; return;
   }
@@ -308,6 +328,25 @@ $("unlockPassword").addEventListener("keydown", e => { if(e.key === "Enter") unl
 // =====================================================
 // LAPOR KE GOOGLE SHEETS (opsional)
 // =====================================================
+let finishFails = 0;
+function openFinish(){
+  if(!S.started || S.finished || S.locked) return;
+  $("finishScreen").style.display = "flex";
+  $("finishCode").value = ""; $("finishError").style.display = "none";
+}
+function closeFinish(){ $("finishScreen").style.display = "none"; }
+function confirmFinish(){
+  if($("finishCode").value.trim() !== CONFIG.FINISH_PASSWORD){
+    finishFails++;
+    $("finishError").style.display = "block"; $("finishCode").value = "";
+    if(finishFails >= 3) report("kode-selesai-salah", "Salah memasukkan kode selesai " + finishFails + "x");
+    return;
+  }
+  closeFinish();
+  finishExam("Ujian selesai dan dikonfirmasi pengawas. Terima kasih, silakan keluar.");
+}
+$("finishCode").addEventListener("keydown", e => { if(e.key === "Enter") confirmFinish(); });
+
 function report(type, detail){
   if(!CONFIG.WEBHOOK_URL) return;
   const data = {type, detail, nama:S.name, kelas:S.kelas, pelanggaran:S.violations, waktu:new Date().toISOString()};
@@ -330,10 +369,17 @@ window.addEventListener("pagehide", () => violation("Halaman ditutup/ditinggalka
 // 2. jendela kehilangan fokus (notifikasi, floating window, split screen)
 window.addEventListener("blur", () => {
   setTimeout(() => {
-    if(document.activeElement === $("exam")) return;      // klik di dalam Google Form bukan pelanggaran
+    // klik di dalam iframe Google Form: document.hasFocus() tetap true, jadi bukan pelanggaran
     if(!document.hasFocus() && !document.hidden) violation("Jendela ujian kehilangan fokus");
   }, 400);
 });
+// cadangan: beberapa browser tidak selalu memicu event blur
+let noFocusCount = 0;
+setInterval(() => {
+  if(!S.started || S.locked || S.finished || document.hidden) { noFocusCount = 0; return; }
+  noFocusCount = document.hasFocus() ? 0 : noFocusCount + 1;
+  if(noFocusCount >= 2){ noFocusCount = 0; violation("Jendela ujian kehilangan fokus"); }
+}, 1000);
 
 // 3. keluar fullscreen
 on("fullscreenchange", () => {
@@ -365,12 +411,18 @@ on("keydown", e => {
 let baseW = innerWidth, baseH = innerHeight;
 window.addEventListener("resize", () => {
   if(!S.started || S.locked) return;
-  const dw = Math.abs(innerWidth - baseW) / baseW, dh = Math.abs(innerHeight - baseH) / baseH;
-  if(dw > .25 || dh > .30) violation("Ukuran jendela berubah (split screen/floating)");
+  // rotasi layar: hanya perbarui acuan. Tinggi diabaikan karena keyboard HP mengubah tinggi layar.
+  if((innerWidth > innerHeight) !== (baseW > baseH)){ baseW = innerWidth; baseH = innerHeight; return; }
+  if(Math.abs(innerWidth - baseW) / baseW > .25) violation("Ukuran jendela berubah (split screen/floating)");
 });
 
 // 7. internet terputus
-window.addEventListener("offline", () => violation("Koneksi internet terputus"));
+let offlineTimer = null;
+window.addEventListener("offline", () => {
+  clearTimeout(offlineTimer);
+  offlineTimer = setTimeout(() => { if(!navigator.onLine) violation("Koneksi internet terputus lebih dari 20 detik"); }, 20000);
+});
+window.addEventListener("online", () => clearTimeout(offlineTimer));
 
 // 8. tombol kembali & refresh/tutup
 history.pushState(null, "", location.href);

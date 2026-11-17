@@ -34,6 +34,7 @@ footer{color:#6b7280;font-size:12px;padding:12px}
 #reason{background:#fee2e2;color:#b91c1c;padding:10px;border-radius:8px;font-weight:bold;font-size:14px}
 #passwordError{color:#dc2626;font-size:14px;display:none}
 #bar button{width:auto;margin:0;padding:6px 12px;font-size:13px;background:#16a34a}
+#timeBanner{display:none;position:fixed;top:40px;left:0;right:0;z-index:60;padding:10px;font-weight:bold;font-size:15px;color:#fff;background:#d97706}
 .btn-gray{background:#6b7280!important}
 #finishError{color:#dc2626;font-size:14px;display:none}
 @media(prefers-color-scheme:dark){body{background:#0f172a;color:#e5e7eb}.card{background:#1e293b;border-color:#334155}.vol{background:#431407;color:#fed7aa}.field{background:#0f172a;color:#e5e7eb;border-color:#475569}}
@@ -43,6 +44,7 @@ footer{color:#6b7280;font-size:12px;padding:12px}
 
 <header><h2>UJIAN ONLINE</h2><p>Sistem Pengawasan Ujian</p></header>
 <div id="bar"><span id="who"></span><span id="timer"></span><span>Pelanggaran: <b id="vc">0</b>/<span id="vmax"></span></span><button onclick="openFinish()">✅ Selesai</button></div>
+<div id="timeBanner"></div>
 
 <div id="start">
   <h3>Selamat Mengerjakan</h3>
@@ -51,6 +53,7 @@ footer{color:#6b7280;font-size:12px;padding:12px}
     <h3>👤 Identitas</h3>
     <input class="field" id="studentName" placeholder="Nama lengkap" autocomplete="off">
     <input class="field" id="studentClass" placeholder="Kelas / No. absen" autocomplete="off">
+    <select class="field" id="mapel"><option value="">-- Pilih mata pelajaran --</option></select>
   </div>
 
   <div class="card rules">
@@ -82,8 +85,7 @@ footer{color:#6b7280;font-size:12px;padding:12px}
   <button id="startExamButton" onclick="startExam()" disabled>MULAI UJIAN</button>
 </div>
 
-<iframe id="exam" title="Soal ujian" allow="autoplay"
-  src="https://docs.google.com/forms/d/e/1FAIpQLScNVGLwyNF-BsAChJkrHLZBaL8dLOBmL4Z1mkWfu3PkxeMO2A/viewform?embedded=true">Memuat formulir...</iframe>
+<iframe id="exam" title="Soal ujian" allow="autoplay">Memuat formulir...</iframe>
 
 <div id="end"><h2>✅ Ujian Selesai</h2><p id="endMsg"></p></div>
 
@@ -122,8 +124,24 @@ const CONFIG = {
   ADMIN_PASSWORD: "UJIAN2026",        // password buka kunci biasa
   FINAL_PASSWORD: "PENGAWAS2026",     // password jika pelanggaran sudah mencapai batas
   FINISH_PASSWORD: "SELESAI2026",      // kode selesai: dimasukkan pengawas setelah HP diserahkan
+  WARN_MINUTES: [10, 5, 1],           // peringatan sisa waktu (menit)
+  GRACE_SECONDS: 60,                  // waktu tambahan setelah timer habis, khusus untuk menekan KIRIM
   MAX_VIOLATIONS: 3,                  // batas pelanggaran
-  EXAM_MINUTES: 60,                   // 0 = tanpa timer
+  // Daftar mata pelajaran: menit = durasi timer, form = link Google Form mapel itu.
+  // form dikosongkan -> memakai DEFAULT_FORM. Kunci (mtk, ipa, ...) dipakai untuk link ?mapel=mtk
+  DEFAULT_FORM: "https://docs.google.com/forms/d/e/1FAIpQLScNVGLwyNF-BsAChJkrHLZBaL8dLOBmL4Z1mkWfu3PkxeMO2A/viewform?embedded=true",
+  MAPEL: {
+    pancasila: {nama:"Pendidikan Pancasila",                       menit:90,  form:""},
+    ind:       {nama:"Bahasa Indonesia",                           menit:90,  form:""},
+    mtk:       {nama:"Matematika",                                 menit:120, form:""},
+    ipas:      {nama:"Ilmu Pengetahuan Alam dan Sosial",           menit:90,  form:""},
+    sbp:       {nama:"Seni Budaya dan Prakarya",                   menit:90,  form:""},
+    pjok:      {nama:"Pend. Jasmani, Olahraga dan Kesehatan",      menit:90,  form:""},
+    sunda:     {nama:"Bahasa dan Sastra Sunda",                    menit:90,  form:""},
+    ing:       {nama:"Bahasa Inggris",                             menit:90,  form:""},
+    mandarin:  {nama:"Bahasa Mandarin",                            menit:90,  form:""},
+    informatika:{nama:"Informatika",                               menit:90,  form:""}
+  },
   REQUIRE_FULLSCREEN: true,
   KEEP_SCREEN_ON: true,
 
@@ -224,10 +242,13 @@ function checkReady(){
 
 async function startExam(){
   const name = $("studentName").value.trim(), kelas = $("studentClass").value.trim();
+  const mk = $("mapel").value;
   if(!name || !kelas){ alert("Isi nama dan kelas terlebih dahulu."); return; }
+  if(!mk || !CONFIG.MAPEL[mk]){ alert("Pilih mata pelajaran terlebih dahulu."); return; }
   if(!volumeTested){ alert("Lakukan tes suara terlebih dahulu."); return; }
-  S.name = name; S.kelas = kelas; S.started = true; S.locked = false;
-  S.endAt = CONFIG.EXAM_MINUTES ? Date.now() + CONFIG.EXAM_MINUTES * 60000 : 0;
+  S.name = name; S.kelas = kelas; S.mapel = mk; S.started = true; S.locked = false;
+  const menit = CONFIG.MAPEL[mk].menit;
+  S.endAt = menit ? Date.now() + menit * 60000 : 0;
   save();
   await enterFullscreen();
   await keepAwake();
@@ -235,11 +256,18 @@ async function startExam(){
   report("mulai", "Ujian dimulai");
 }
 
+function loadForm(){
+  const f = $("exam");
+  if(f.getAttribute("src")) return;
+  const m = CONFIG.MAPEL[S.mapel] || {};
+  f.src = m.form || CONFIG.DEFAULT_FORM;
+}
 function showExam(){
+  loadForm();
   $("start").style.display = "none";
   $("exam").style.display = "block";
   $("bar").style.display = "flex";
-  $("who").innerText = S.name + " (" + S.kelas + ")";
+  $("who").innerText = S.name + " (" + S.kelas + ") · " + ((CONFIG.MAPEL[S.mapel] || {}).nama || "");
   $("vc").innerText = S.violations;
   runTimer();
 }
@@ -256,20 +284,53 @@ async function keepAwake(){
   if(!CONFIG.KEEP_SCREEN_ON || !("wakeLock" in navigator)) return;
   try{ wakeLock = await navigator.wakeLock.request("screen"); }catch(e){}
 }
+let bannerTimer = null;
+function banner(text, color, ms){
+  const b = $("timeBanner");
+  b.innerText = text; b.style.background = color || "#d97706"; b.style.display = "block";
+  clearTimeout(bannerTimer);
+  if(ms) bannerTimer = setTimeout(() => { b.style.display = "none"; }, ms);
+}
+function chime(){
+  if(!ensureAudio()) return;
+  audioCtx.resume();
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = "sine"; o.frequency.value = 880; g.gain.value = 0.5 * CONFIG.ALARM_VOLUME;
+  o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + 0.35);
+  if(navigator.vibrate) navigator.vibrate(200);
+}
 function runTimer(){
   if(!S.endAt){ $("timer").innerText = ""; return; }
   clearInterval(timerId);
   timerId = setInterval(() => {
     const left = S.endAt - Date.now();
-    if(left <= 0){ clearInterval(timerId); finishExam("Waktu ujian habis."); return; }
-    const m = Math.floor(left / 60000), s = Math.floor(left % 60000 / 1000);
-    $("timer").innerText = "⏱ " + m + ":" + String(s).padStart(2, "0");
+    const grace = CONFIG.GRACE_SECONDS * 1000;
+    if(left <= -grace){
+      finishExam("Waktu ujian habis. Jawaban yang belum dikirim tidak tersimpan. Segera lapor ke pengawas.");
+      return;
+    }
+    if(left <= 0){                                           // masa tambahan: hanya untuk menekan KIRIM
+      const sisa = Math.ceil((grace + left) / 1000);
+      $("timer").innerText = "⏱ 0:00";
+      banner("⏰ WAKTU HABIS! Tekan KIRIM sekarang. Ujian ditutup dalam " + sisa + " detik.", "#dc2626");
+      if(!S.timeUpChime){ S.timeUpChime = true; save(); startAlarm({loop:false, repeat:2, seconds:2}); }
+      return;
+    }
+    CONFIG.WARN_MINUTES.forEach(w => {
+      if(left <= w * 60000 && !S["warn" + w]){
+        S["warn" + w] = true; save();
+        banner("⏳ Sisa waktu " + w + " menit. Pastikan jawaban sudah dikirim.", "#d97706", 8000);
+        chime();
+      }
+    });
+    const m = Math.floor(left / 60000), sec = Math.floor(left % 60000 / 1000);
+    $("timer").innerText = "⏱ " + m + ":" + String(sec).padStart(2, "0");
   }, 1000);
 }
 function finishExam(msg){
   stopAlarm(); clearInterval(timerId);
   S.started = false; S.locked = false; S.finished = true; save();
-  $("exam").style.display = "none"; $("lockScreen").style.display = "none"; $("finishScreen").style.display = "none"; $("bar").style.display = "none";
+  $("exam").style.display = "none"; $("lockScreen").style.display = "none"; $("finishScreen").style.display = "none"; $("bar").style.display = "none"; $("timeBanner").style.display = "none";
   $("end").style.display = "block"; $("endMsg").innerText = msg;
   if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
   report("selesai", msg);
@@ -349,7 +410,7 @@ $("finishCode").addEventListener("keydown", e => { if(e.key === "Enter") confirm
 
 function report(type, detail){
   if(!CONFIG.WEBHOOK_URL) return;
-  const data = {type, detail, nama:S.name, kelas:S.kelas, pelanggaran:S.violations, waktu:new Date().toISOString()};
+  const data = {type, detail, nama:S.name, kelas:S.kelas, mapel:(CONFIG.MAPEL[S.mapel]||{}).nama||"", pelanggaran:S.violations, waktu:new Date().toISOString()};
   try{ fetch(CONFIG.WEBHOOK_URL, {method:"POST", mode:"no-cors", keepalive:true, headers:{"Content-Type":"text/plain"}, body:JSON.stringify(data)}); }catch(e){}
 }
 
@@ -438,12 +499,22 @@ on("visibilitychange", () => { if(!document.hidden && S.started && !S.locked) ke
 // =====================================================
 // PEMULIHAN SETELAH REFRESH
 // =====================================================
+(function(){
+  const sel = $("mapel"), pick = new URLSearchParams(location.search).get("mapel");
+  const fmt = m => m && m % 60 === 0 ? (m / 60) + " jam" : m + " menit";
+  Object.keys(CONFIG.MAPEL).forEach(k => {
+    const o = document.createElement("option");
+    o.value = k; o.textContent = CONFIG.MAPEL[k].nama + " (" + fmt(CONFIG.MAPEL[k].menit) + ")";
+    sel.appendChild(o);
+  });
+  if(pick && CONFIG.MAPEL[pick]){ sel.value = pick; sel.disabled = true; }   // link ?mapel=mtk mengunci pilihan
+})();
 $("vmax").innerText = CONFIG.MAX_VIOLATIONS;
 document.querySelectorAll(".maxText").forEach(n => n.innerText = CONFIG.MAX_VIOLATIONS);
 if(S.finished){ finishExam("Ujian sudah selesai."); }
 else if(S.started){
-  $("start").style.display = "none"; $("bar").style.display = "flex";
-  $("who").innerText = S.name + " (" + S.kelas + ")"; $("vc").innerText = S.violations; runTimer();
+  loadForm(); $("start").style.display = "none"; $("bar").style.display = "flex";
+  $("who").innerText = S.name + " (" + S.kelas + ") · " + ((CONFIG.MAPEL[S.mapel] || {}).nama || ""); $("vc").innerText = S.violations; runTimer();
   if(!S.locked){ S.reason = "Halaman dimuat ulang/ditutup saat ujian"; S.locked = true; S.violations++; S.log.push({t:new Date().toLocaleTimeString("id-ID"), r:S.reason}); save(); report("pelanggaran", S.reason); }
   showLock();
 }

@@ -1,666 +1,400 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <title>Ujian Online</title>
-
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      background: #f3f4f6;
-      text-align: center;
-      color: #1f2937;
-    }
-
-    header {
-      background: #1d4ed8;
-      color: white;
-      padding: 18px;
-    }
-
-    header h2 {
-      margin: 0;
-    }
-
-    #start {
-      padding: 15px;
-      max-width: 600px;
-      margin: auto;
-    }
-
-    #warning {
-      display: none;
-      background: #fee2e2;
-      color: #b91c1c;
-      padding: 15px;
-      font-weight: bold;
-      border: 2px solid #dc2626;
-      margin: 12px;
-      border-radius: 8px;
-    }
-
-    #violationCount {
-      display: none;
-      color: #b91c1c;
-      font-weight: bold;
-      padding: 8px;
-    }
-
-    .volume-check {
-      background: #fff7ed;
-      color: #9a3412;
-      padding: 18px;
-      margin: 20px 0;
-      border-radius: 10px;
-      border: 1px solid #fed7aa;
-      text-align: left;
-    }
-
-    .volume-check h3 {
-      text-align: center;
-      margin-top: 0;
-    }
-
-    .volume-check p {
-      line-height: 1.5;
-    }
-
-    .volume-check label {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      margin-top: 15px;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    .volume-check input {
-      margin-top: 3px;
-      width: 18px;
-      height: 18px;
-    }
-
-    button {
-      background: #1d4ed8;
-      color: white;
-      border: 0;
-      padding: 14px 25px;
-      border-radius: 8px;
-      font-size: 16px;
-      margin: 10px 0;
-      cursor: pointer;
-      width: 100%;
-    }
-
-    button:disabled {
-      background: #9ca3af;
-      cursor: not-allowed;
-    }
-
-    .test-button {
-      background: #ea580c;
-    }
-
-    #exam {
-      display: none;
-      width: 100%;
-      height: 85vh;
-      border: none;
-      background: white;
-    }
-
-    footer {
-      color: #6b7280;
-      font-size: 12px;
-      padding: 15px;
-    }
-
-    /* HALAMAN KUNCI UJIAN */
-
-    #lockScreen {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 99999;
-      background: #111827;
-      color: white;
-      padding: 20px;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .lock-card {
-      background: white;
-      color: #1f2937;
-      padding: 25px;
-      border-radius: 15px;
-      width: 100%;
-      max-width: 400px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    }
-
-    .lock-icon {
-      font-size: 55px;
-      margin-bottom: 10px;
-    }
-
-    .lock-card h2 {
-      color: #dc2626;
-    }
-
-    .lock-card input {
-      width: 100%;
-      padding: 14px;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      font-size: 16px;
-      margin: 12px 0;
-    }
-
-    .lock-card button {
-      background: #16a34a;
-    }
-
-    #passwordError {
-      color: #dc2626;
-      font-size: 14px;
-      display: none;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ujian Online</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial,sans-serif;margin:0;background:#f3f4f6;text-align:center;color:#1f2937;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input{-webkit-user-select:text;user-select:text}
+header{background:#1d4ed8;color:#fff;padding:14px}
+header h2{margin:0}header p{margin:4px 0 0;font-size:13px}
+#bar{display:none;position:sticky;top:0;z-index:50;background:#111827;color:#fff;font-size:14px;padding:8px 12px;justify-content:space-between}
+#bar b{color:#fca5a5}
+#start{padding:15px;max-width:600px;margin:auto}
+.card{background:#fff;border-radius:10px;padding:16px;margin:14px 0;text-align:left;border:1px solid #e5e7eb}
+.card h3{margin-top:0;text-align:center}
+.card ul{padding-left:20px;line-height:1.6;font-size:14px;margin:6px 0}
+.vol{background:#fff7ed;color:#9a3412;border-color:#fed7aa}
+.vol label,.rules label{display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:14px;line-height:1.5}
+.vol input[type=checkbox],.rules input[type=checkbox]{margin-top:3px;width:18px;height:18px}
+.field{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;margin:6px 0}
+button{background:#1d4ed8;color:#fff;border:0;padding:14px 25px;border-radius:8px;font-size:16px;margin:10px 0;cursor:pointer;width:100%}
+button:disabled{background:#9ca3af;cursor:not-allowed}
+.test-button{background:#ea580c}
+#exam{display:none;width:100%;height:calc(100vh - 40px);border:none;background:#fff}
+#end{display:none;padding:40px 20px}
+footer{color:#6b7280;font-size:12px;padding:12px}
+#lockScreen{display:none;position:fixed;inset:0;z-index:99999;background:#111827;padding:20px;align-items:center;justify-content:center;overflow:auto}
+.lock-card{background:#fff;padding:25px;border-radius:15px;width:100%;max-width:400px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.lock-icon{font-size:55px}
+.lock-card h2{color:#dc2626;margin:6px 0}
+.lock-card button{background:#16a34a}
+#reason{background:#fee2e2;color:#b91c1c;padding:10px;border-radius:8px;font-weight:bold;font-size:14px}
+#passwordError{color:#dc2626;font-size:14px;display:none}
+@media(prefers-color-scheme:dark){body{background:#0f172a;color:#e5e7eb}.card{background:#1e293b;border-color:#334155}.vol{background:#431407;color:#fed7aa}.field{background:#0f172a;color:#e5e7eb;border-color:#475569}}
+</style>
 </head>
-
 <body>
 
-  <!-- HEADER -->
+<header><h2>UJIAN ONLINE</h2><p>Sistem Pengawasan Ujian</p></header>
+<div id="bar"><span id="who"></span><span id="timer"></span><span>Pelanggaran: <b id="vc">0</b>/<span id="vmax"></span></span></div>
 
-  <header>
-    <h2>UJIAN ONLINE</h2>
-    <p>Sistem Pengawasan Ujian</p>
-  </header>
+<div id="start">
+  <h3>Selamat Mengerjakan</h3>
 
-
-  <!-- PERINGATAN PELANGGARAN -->
-
-  <div id="warning">
-    ⚠️ PERINGATAN!
-
-    <br><br>
-
-    Kamu telah meninggalkan halaman ujian.
-
-    <br>
-
-    Ujian dikunci. Hubungi pengawas untuk melanjutkan.
+  <div class="card">
+    <h3>👤 Identitas</h3>
+    <input class="field" id="studentName" placeholder="Nama lengkap" autocomplete="off">
+    <input class="field" id="studentClass" placeholder="Kelas / No. absen" autocomplete="off">
   </div>
 
-  <div id="violationCount">
-    Jumlah pelanggaran: 0
+  <div class="card rules">
+    <h3>📋 Aturan Ujian</h3>
+    <ul>
+      <li>Dilarang keluar dari halaman ujian, pindah tab/aplikasi, atau membuka notifikasi/jendela mengambang.</li>
+      <li>Dilarang keluar dari mode layar penuh.</li>
+      <li>Dilarang copy, paste, cut, screenshot, cetak, dan klik kanan / tekan lama.</li>
+      <li>Dilarang me-refresh, menutup, atau menekan tombol kembali.</li>
+      <li>Dilarang mengubah ukuran jendela (split screen) atau memutus koneksi internet.</li>
+      <li>Setiap pelanggaran: alarm berbunyi, ujian terkunci, dan dicatat. Pelanggaran ke-<span class="maxText"></span> menghentikan ujian.</li>
+    </ul>
+    <label><input type="checkbox" id="agree" onchange="checkReady()"> Saya sudah membaca dan menyetujui aturan di atas.</label>
   </div>
 
-
-  <!-- HALAMAN AWAL -->
-
-  <div id="start">
-
-    <h3>Selamat Mengerjakan</h3>
-
-    <p>
-      Silakan lakukan pengecekan volume HP sebelum
-      memulai ujian.
-    </p>
-
-
-    <!-- PENGECEKAN VOLUME -->
-
-    <div class="volume-check">
-
-      <h3>🔊 PENGECEKAN VOLUME HP</h3>
-
-      <p>
-        1. Naikkan volume media HP hingga maksimal.
-      </p>
-
-      <p>
-        2. Pastikan HP tidak dalam mode senyap.
-      </p>
-
-      <p>
-        3. Tekan tombol tes suara di bawah ini.
-      </p>
-
-      <button
-        type="button"
-        class="test-button"
-        onclick="testAlarm()">
-
-        🔊 TEST SUARA ALARM
-
-      </button>
-
-      <p id="testStatus">
-        Belum melakukan tes suara.
-      </p>
-
-      <label>
-        <input
-          type="checkbox"
-          id="volumeConfirmed"
-          onchange="checkVolume()">
-
-        Saya sudah menaikkan volume HP dan
-        mendengar suara tes alarm.
-      </label>
-
-    </div>
-
-
-    <p>
-      Jangan keluar dari halaman ujian atau membuka
-      aplikasi lain selama ujian berlangsung.
-    </p>
-
-    <button
-      id="startExamButton"
-      onclick="startExam()"
-      disabled>
-
-      MULAI UJIAN
-
-    </button>
-
+  <div class="card vol">
+    <h3>🔊 PENGECEKAN VOLUME HP</h3>
+    <ul>
+      <li>Naikkan volume media HP hingga maksimal.</li>
+      <li>Pastikan HP tidak dalam mode senyap.</li>
+      <li>Tekan tombol tes suara di bawah ini.</li>
+    </ul>
+    <button type="button" class="test-button" onclick="testAlarm()">🔊 TEST SUARA ALARM</button>
+    <p id="testStatus">Belum melakukan tes suara.</p>
+    <label><input type="checkbox" id="volumeConfirmed" onchange="checkReady()"> Saya sudah menaikkan volume HP dan mendengar suara tes alarm.</label>
   </div>
 
+  <button id="startExamButton" onclick="startExam()" disabled>MULAI UJIAN</button>
+</div>
 
-  <!-- GOOGLE FORMS -->
+<iframe id="exam" title="Soal ujian" allow="autoplay"
+  src="https://docs.google.com/forms/d/e/1FAIpQLScNVGLwyNF-BsAChJkrHLZBaL8dLOBmL4Z1mkWfu3PkxeMO2A/viewform?embedded=true">Memuat formulir...</iframe>
 
-  <iframe
-    id="exam"
-    src="https://docs.google.com/forms/d/e/1FAIpQLScNVGLwyNF-BsAChJkrHLZBaL8dLOBmL4Z1mkWfu3PkxeMO2A/viewform?embedded=true"
-    width="100%"
-    height="600"
-    frameborder="0"
-    allow="autoplay">
+<div id="end"><h2>✅ Ujian Selesai</h2><p id="endMsg"></p></div>
 
-    Memuat formulir...
-
-  </iframe>
-
-
-  <!-- HALAMAN UJIAN TERKUNCI -->
-
-  <div id="lockScreen">
-
-    <div class="lock-card">
-
-      <div class="lock-icon">🔒</div>
-
-      <h2>UJIAN TERKUNCI</h2>
-
-      <p>
-        Kamu telah meninggalkan halaman ujian.
-      </p>
-
-      <p>
-        Untuk melanjutkan ujian, masukkan password
-        yang diberikan oleh pengawas.
-      </p>
-
-      <input
-        type="password"
-        id="unlockPassword"
-        placeholder="Masukkan password pengawas"
-        autocomplete="off">
-
-      <button onclick="unlockExam()">
-        BUKA KUNCI UJIAN
-      </button>
-
-      <p id="passwordError">
-        Password salah! Silakan coba kembali.
-      </p>
-
-      <p style="font-size:12px;color:#6b7280;">
-        Hubungi pengawas jika belum mendapatkan password.
-      </p>
-
-    </div>
-
+<div id="lockScreen">
+  <div class="lock-card">
+    <div class="lock-icon">🔒</div>
+    <h2 id="lockTitle">UJIAN TERKUNCI</h2>
+    <div id="reason"></div>
+    <p id="lockInfo">Masukkan password dari pengawas untuk melanjutkan.</p>
+    <input class="field" type="password" id="unlockPassword" placeholder="Password pengawas" autocomplete="off">
+    <button onclick="unlockExam()">BUKA KUNCI UJIAN</button>
+    <p id="passwordError">Password salah! Silakan coba kembali.</p>
   </div>
+</div>
 
+<footer>Sistem Ujian Online</footer>
 
-  <footer>
-    Sistem Ujian Online
-  </footer>
+<script>
+// =====================================================
+// PENGATURAN  (ubah di sini)
+// =====================================================
+const CONFIG = {
+  ADMIN_PASSWORD: "UJIAN2026",        // password buka kunci biasa
+  FINAL_PASSWORD: "PENGAWAS2026",     // password jika pelanggaran sudah mencapai batas
+  MAX_VIOLATIONS: 3,                  // batas pelanggaran
+  EXAM_MINUTES: 60,                   // 0 = tanpa timer
+  REQUIRE_FULLSCREEN: true,
+  KEEP_SCREEN_ON: true,
 
+  // ---- ALARM ----
+  ALARM_FILE: "",                     // isi mis. "alarm.mp3" untuk suara sendiri (file harus satu folder/hosting)
+  ALARM_TYPE: "sirene",               // jika ALARM_FILE kosong: "sirene" | "beep" | "bel" | "kebakaran"
+  ALARM_VOLUME: 1.0,                  // 0.0 - 1.0
+  ALARM_LOOP: true,                   // true = bunyi terus sampai password benar
+  ALARM_SECONDS: 0,                   // jika ALARM_LOOP true, 0 = tanpa henti; isi detik untuk membatasi
 
-  <script>
+  // ---- LOG KE GOOGLE SHEETS (opsional) ----
+  WEBHOOK_URL: ""                     // URL Web App Google Apps Script; kosong = tidak dikirim
+};
 
-    // =====================================
-    // PENGATURAN SISTEM
-    // =====================================
+// =====================================================
+// STATE (disimpan di localStorage agar tahan refresh)
+// =====================================================
+const KEY = "exam_state_v2";
+let S = load() || {started:false, locked:false, violations:0, log:[], name:"", kelas:"", endAt:0, reason:""};
+let audioCtx = null, volumeTested = false, alarmStop = null, lastViolationAt = 0, wakeLock = null, timerId = null;
+const $ = id => document.getElementById(id);
 
-    // GANTI PASSWORD INI
-    const ADMIN_PASSWORD = "UJIAN2026";
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 
-    let examStarted = false;
-    let leftPage = false;
-    let violations = 0;
-    let audioContext = null;
-    let volumeTested = false;
+// =====================================================
+// ALARM
+// =====================================================
+function ensureAudio(){
+  const A = window.AudioContext || window.webkitAudioContext;
+  if(!A){ return false; }
+  if(!audioCtx) audioCtx = new A();
+  return true;
+}
 
+// pola suara bawaan: [frekuensi Hz, durasi detik, jenis gelombang]
+const PATTERNS = {
+  sirene:    {steps:[[800,.5,"sawtooth"],[1200,.5,"sawtooth"]]},
+  beep:      {steps:[[1000,.25,"square"],[0,.15,"sine"]]},
+  bel:       {steps:[[1400,.15,"triangle"],[1000,.15,"triangle"],[1400,.15,"triangle"],[0,.4,"sine"]]},
+  kebakaran: {steps:[[900,.12,"square"],[0,.08,"sine"],[900,.12,"square"],[0,.08,"sine"],[900,.12,"square"],[0,.5,"sine"]]}
+};
 
-    // =====================================
-    // INISIALISASI AUDIO
-    // =====================================
+function startAlarm(opts){
+  opts = opts || {};
+  stopAlarm();
+  const loop = opts.loop !== undefined ? opts.loop : CONFIG.ALARM_LOOP;
+  const maxSec = opts.seconds !== undefined ? opts.seconds : CONFIG.ALARM_SECONDS;
+  let stopped = false, timeout = null;
+  const t0 = Date.now();
+  const finish = () => { stopped = true; clearTimeout(timeout); };
 
-    function initializeAudio() {
+  if(navigator.vibrate) navigator.vibrate(loop ? [400,200,400,200,400,200,400] : [300,150,300]);
 
-      const AudioCtx =
-        window.AudioContext ||
-        window.webkitAudioContext;
+  if(CONFIG.ALARM_FILE){
+    const a = new Audio(CONFIG.ALARM_FILE);
+    a.loop = loop; a.volume = CONFIG.ALARM_VOLUME;
+    a.play().catch(e => console.log("Alarm file gagal:", e));
+    const prev = finish;
+    alarmStop = () => { prev(); a.pause(); a.currentTime = 0; };
+    if(opts.seconds || (loop && maxSec)) timeout = setTimeout(stopAlarm, (opts.seconds || maxSec) * 1000);
+    return;
+  }
 
-      if (!AudioCtx) {
-        alert("Browser tidak mendukung audio alarm.");
-        return false;
-      }
-
-      if (!audioContext) {
-        audioContext = new AudioCtx();
-      }
-
-      return true;
+  if(!ensureAudio()) return;
+  audioCtx.resume();
+  const steps = (PATTERNS[CONFIG.ALARM_TYPE] || PATTERNS.sirene).steps;
+  let i = 0;
+  (function next(){
+    if(stopped) return;
+    if(maxSec && (Date.now() - t0) / 1000 > maxSec) return stopAlarm();
+    if(!loop && i >= steps.length * (opts.repeat || 4)) return;
+    const [f, d, type] = steps[i % steps.length]; i++;
+    if(f > 0){
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = type; o.frequency.value = f; g.gain.value = CONFIG.ALARM_VOLUME;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + d);
     }
-
-
-    // =====================================
-    // MEMBUAT SUARA ALARM
-    // =====================================
-
-    async function playAlarm() {
-
-      if (!initializeAudio()) return;
-
-      try {
-
-        if (audioContext.state !== "running") {
-          await audioContext.resume();
-        }
-
-        const oscillator =
-          audioContext.createOscillator();
-
-        const gain =
-          audioContext.createGain();
-
-        oscillator.connect(gain);
-        gain.connect(audioContext.destination);
-
-        oscillator.type = "square";
-        oscillator.frequency.value = 1000;
-
-        // Kekuatan sinyal audio
-        gain.gain.value = 0.8;
-
-        oscillator.start();
-
-        await new Promise(resolve => {
-          setTimeout(resolve, 1000);
-        });
-
-        oscillator.stop();
-
-      } catch (error) {
-
-        console.log("Alarm audio gagal:", error);
-
-      }
-
-      // Getaran HP
-
-      if (navigator.vibrate) {
-        navigator.vibrate([300, 150, 300]);
-      }
-
-    }
-
-
-    // =====================================
-    // TES SUARA ALARM
-    // =====================================
-
-    async function testAlarm() {
-
-      if (!initializeAudio()) return;
-
-      try {
-
-        await audioContext.resume();
-
-        document.getElementById("testStatus").innerText =
-          "Memutar tes suara...";
-
-        await playAlarm();
-
-        volumeTested = true;
-
-        document.getElementById("testStatus").innerText =
-          "✓ Tes suara selesai. Silakan centang konfirmasi.";
-
-        checkVolume();
-
-      } catch (error) {
-
-        alert("Tes audio gagal. Silakan coba kembali.");
-
-      }
-
-    }
-
-
-    // =====================================
-    // CEK KONFIRMASI VOLUME
-    // =====================================
-
-    function checkVolume() {
-
-      const checked =
-        document.getElementById("volumeConfirmed").checked;
-
-      document.getElementById("startExamButton").disabled =
-        !(checked && volumeTested);
-
-    }
-
-
-    // =====================================
-    // MULAI UJIAN
-    // =====================================
-
-    async function startExam() {
-
-      if (!volumeTested ||
-          !document.getElementById("volumeConfirmed").checked) {
-
-        alert("Silakan lakukan tes suara terlebih dahulu.");
-        return;
-
-      }
-
-      if (audioContext) {
-        await audioContext.resume();
-      }
-
-      examStarted = true;
-
-      // Simpan status ujian
-      sessionStorage.setItem("examStarted", "true");
-
-      document.getElementById("start").style.display =
-        "none";
-
-      document.getElementById("exam").style.display =
-        "block";
-
-    }
-
-
-    // =====================================
-    // KUNCI UJIAN
-    // =====================================
-
-    function lockExam() {
-
-      sessionStorage.setItem("examLocked", "true");
-
-      document.getElementById("exam").style.display =
-        "none";
-
-      document.getElementById("lockScreen").style.display =
-        "flex";
-
-      document.getElementById("unlockPassword").value =
-        "";
-
-      document.getElementById("passwordError").style.display =
-        "none";
-
-      document.getElementById("warning").style.display =
-        "block";
-
-    }
-
-
-    // =====================================
-    // BUKA KUNCI UJIAN
-    // =====================================
-
-    async function unlockExam() {
-
-      const password =
-        document.getElementById("unlockPassword").value;
-
-      if (password === ADMIN_PASSWORD) {
-
-        // Coba aktifkan audio kembali
-        if (audioContext) {
-          try {
-            await audioContext.resume();
-          } catch (error) {
-            console.log(error);
-          }
-        }
-
-        sessionStorage.removeItem("examLocked");
-
-        document.getElementById("lockScreen").style.display =
-          "none";
-
-        document.getElementById("exam").style.display =
-          "block";
-
-        document.getElementById("warning").style.display =
-          "none";
-
-        leftPage = false;
-
-        alert("Password benar. Ujian dapat dilanjutkan.");
-
-      } else {
-
-        document.getElementById("passwordError").style.display =
-          "block";
-
-        document.getElementById("unlockPassword").value =
-          "";
-
-      }
-
-    }
-
-
-    // =====================================
-    // ENTER UNTUK MEMASUKKAN PASSWORD
-    // =====================================
-
-    document.getElementById("unlockPassword")
-      .addEventListener("keydown", function(event) {
-
-        if (event.key === "Enter") {
-          unlockExam();
-        }
-
-      });
-
-
-    // =====================================
-    // DETEKSI KELUAR DARI HALAMAN
-    // =====================================
-
-    document.addEventListener(
-      "visibilitychange",
-      async function() {
-
-        if (!examStarted) return;
-
-        if (document.hidden) {
-
-          // Siswa meninggalkan halaman
-          leftPage = true;
-
-        } else if (leftPage) {
-
-          // Siswa kembali ke halaman ujian
-
-          violations++;
-
-          document.getElementById("violationCount").style.display =
-            "block";
-
-          document.getElementById("violationCount").innerText =
-            "Jumlah pelanggaran: " + violations;
-
-          // Keluarkan alarm
-          await playAlarm();
-
-          // Kunci ujian
-          lockExam();
-
-          leftPage = false;
-
-        }
-
-      }
-    );
-
-
-    // =====================================
-    // PEMULIHAN STATUS SETELAH REFRESH
-    // =====================================
-
-    if (sessionStorage.getItem("examStarted") === "true") {
-
-      examStarted = true;
-
-      // Jika ujian pernah dimulai, minta password
-      // setelah halaman dimuat ulang.
-      violations = Number(
-        sessionStorage.getItem("violations") || 0
-      );
-
-      lockExam();
-
-    }
-
-
-  </script>
-
+    timeout = setTimeout(next, d * 1000);
+  })();
+  alarmStop = finish;
+}
+function stopAlarm(){ if(alarmStop){ alarmStop(); alarmStop = null; } if(navigator.vibrate) navigator.vibrate(0); }
+
+function testAlarm(){
+  startAlarm({loop:false, repeat:3, seconds:3});
+  $("testStatus").innerText = "Memutar tes suara...";
+  setTimeout(() => { volumeTested = true; $("testStatus").innerText = "✓ Tes suara selesai. Silakan centang konfirmasi."; checkReady(); }, 3200);
+}
+
+// =====================================================
+// MULAI UJIAN
+// =====================================================
+function checkReady(){
+  $("startExamButton").disabled = !($("volumeConfirmed").checked && volumeTested && $("agree").checked);
+}
+
+async function startExam(){
+  const name = $("studentName").value.trim(), kelas = $("studentClass").value.trim();
+  if(!name || !kelas){ alert("Isi nama dan kelas terlebih dahulu."); return; }
+  if(!volumeTested){ alert("Lakukan tes suara terlebih dahulu."); return; }
+  S.name = name; S.kelas = kelas; S.started = true; S.locked = false;
+  S.endAt = CONFIG.EXAM_MINUTES ? Date.now() + CONFIG.EXAM_MINUTES * 60000 : 0;
+  save();
+  await enterFullscreen();
+  await keepAwake();
+  showExam();
+  report("mulai", "Ujian dimulai");
+}
+
+function showExam(){
+  $("start").style.display = "none";
+  $("exam").style.display = "block";
+  $("bar").style.display = "flex";
+  $("who").innerText = S.name + " (" + S.kelas + ")";
+  $("vc").innerText = S.violations;
+  runTimer();
+}
+
+// =====================================================
+// FULLSCREEN, WAKE LOCK, TIMER
+// =====================================================
+async function enterFullscreen(){
+  if(!CONFIG.REQUIRE_FULLSCREEN) return;
+  const el = document.documentElement;
+  try{ if(el.requestFullscreen) await el.requestFullscreen(); else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen(); }catch(e){}
+}
+async function keepAwake(){
+  if(!CONFIG.KEEP_SCREEN_ON || !("wakeLock" in navigator)) return;
+  try{ wakeLock = await navigator.wakeLock.request("screen"); }catch(e){}
+}
+function runTimer(){
+  if(!S.endAt){ $("timer").innerText = ""; return; }
+  clearInterval(timerId);
+  timerId = setInterval(() => {
+    const left = S.endAt - Date.now();
+    if(left <= 0){ clearInterval(timerId); finishExam("Waktu ujian habis."); return; }
+    const m = Math.floor(left / 60000), s = Math.floor(left % 60000 / 1000);
+    $("timer").innerText = "⏱ " + m + ":" + String(s).padStart(2, "0");
+  }, 1000);
+}
+function finishExam(msg){
+  stopAlarm(); clearInterval(timerId);
+  S.started = false; S.locked = false; S.finished = true; save();
+  $("exam").style.display = "none"; $("lockScreen").style.display = "none"; $("bar").style.display = "none";
+  $("end").style.display = "block"; $("endMsg").innerText = msg;
+  if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  report("selesai", msg);
+}
+
+// =====================================================
+// PELANGGARAN & KUNCI
+// =====================================================
+function violation(reason){
+  if(!S.started || S.finished) return;
+  const now = Date.now();
+  if(S.locked || now - lastViolationAt < 1500) return;   // cegah hitungan ganda
+  lastViolationAt = now;
+  S.violations++;
+  S.reason = reason;
+  S.locked = true;
+  S.log.push({t:new Date().toLocaleTimeString("id-ID"), r:reason});
+  save();
+  startAlarm();
+  report("pelanggaran", reason);
+  showLock();
+}
+
+function showLock(){
+  const final = S.violations >= CONFIG.MAX_VIOLATIONS;
+  $("exam").style.display = "none";
+  $("lockScreen").style.display = "flex";
+  $("vc").innerText = S.violations;
+  $("reason").innerText = "Pelanggaran ke-" + S.violations + ": " + S.reason;
+  $("lockTitle").innerText = final ? "UJIAN DIHENTIKAN" : "UJIAN TERKUNCI";
+  $("lockInfo").innerText = final
+    ? "Batas pelanggaran tercapai. Panggil pengawas — hanya pengawas yang dapat membuka."
+    : "Masukkan password dari pengawas untuk melanjutkan.";
+  $("unlockPassword").value = ""; $("passwordError").style.display = "none";
+  if(final && !S.finalNotified){ S.finalNotified = true; save(); report("batas", "Batas pelanggaran tercapai"); }
+}
+
+async function unlockExam(){
+  const final = S.violations >= CONFIG.MAX_VIOLATIONS;
+  const need = final ? CONFIG.FINAL_PASSWORD : CONFIG.ADMIN_PASSWORD;
+  if($("unlockPassword").value !== need){
+    $("passwordError").style.display = "block"; $("unlockPassword").value = ""; return;
+  }
+  stopAlarm();
+  S.locked = false; save();
+  if(final){ S.violations = CONFIG.MAX_VIOLATIONS - 1; save(); }   // beri kesempatan lagi jika pengawas membuka
+  $("lockScreen").style.display = "none";
+  $("exam").style.display = "block";
+  await enterFullscreen(); await keepAwake();
+  report("buka-kunci", "Dibuka pengawas");
+}
+$("unlockPassword").addEventListener("keydown", e => { if(e.key === "Enter") unlockExam(); });
+
+// =====================================================
+// LAPOR KE GOOGLE SHEETS (opsional)
+// =====================================================
+function report(type, detail){
+  if(!CONFIG.WEBHOOK_URL) return;
+  const data = {type, detail, nama:S.name, kelas:S.kelas, pelanggaran:S.violations, waktu:new Date().toISOString()};
+  try{ fetch(CONFIG.WEBHOOK_URL, {method:"POST", mode:"no-cors", keepalive:true, headers:{"Content-Type":"text/plain"}, body:JSON.stringify(data)}); }catch(e){}
+}
+
+// =====================================================
+// DETEKSI PELANGGARAN
+// =====================================================
+const on = (t, fn, o) => document.addEventListener(t, fn, o);
+
+// 1. pindah tab / aplikasi / layar mati — dihitung saat meninggalkan
+on("visibilitychange", () => {
+  if(!S.started || S.finished) return;
+  if(document.hidden) violation("Meninggalkan halaman ujian (pindah tab/aplikasi)");
+  else if(S.locked) startAlarm();                         // bunyikan lagi saat kembali (browser menahan audio di background)
+});
+window.addEventListener("pagehide", () => violation("Halaman ditutup/ditinggalkan"));
+
+// 2. jendela kehilangan fokus (notifikasi, floating window, split screen)
+window.addEventListener("blur", () => {
+  setTimeout(() => {
+    if(document.activeElement === $("exam")) return;      // klik di dalam Google Form bukan pelanggaran
+    if(!document.hasFocus() && !document.hidden) violation("Jendela ujian kehilangan fokus");
+  }, 400);
+});
+
+// 3. keluar fullscreen
+on("fullscreenchange", () => {
+  if(CONFIG.REQUIRE_FULLSCREEN && !document.fullscreenElement) violation("Keluar dari layar penuh");
+});
+
+// 4. copy / paste / cut / klik kanan / pilih teks / drag / cetak
+["copy","cut","paste","contextmenu","dragstart","selectstart"].forEach(t =>
+  on(t, e => {
+    if(!S.started) return;
+    if(e.target && e.target.tagName === "INPUT") return;
+    e.preventDefault();
+    if(["copy","cut","paste"].includes(t)) violation("Mencoba " + t + " teks");
+  }));
+window.addEventListener("beforeprint", () => violation("Mencoba mencetak halaman"));
+
+// 5. pintasan keyboard terlarang
+on("keydown", e => {
+  if(!S.started) return;
+  const k = e.key.toLowerCase(), c = e.ctrlKey || e.metaKey;
+  if(k === "printscreen"){ navigator.clipboard && navigator.clipboard.writeText(""); violation("Menekan PrintScreen"); }
+  else if(k === "f12" || (c && e.shiftKey && ["i","j","c"].includes(k)) || (c && ["u","s","p","a","c","v","x"].includes(k)) || (e.altKey && k === "tab") || k === "f5" || (c && k === "r")){
+    e.preventDefault();
+    violation("Pintasan terlarang: " + (c ? "Ctrl+" : "") + (e.shiftKey ? "Shift+" : "") + e.key);
+  }
+});
+
+// 6. ukuran jendela berubah (split screen / floating) & rotasi
+let baseW = innerWidth, baseH = innerHeight;
+window.addEventListener("resize", () => {
+  if(!S.started || S.locked) return;
+  const dw = Math.abs(innerWidth - baseW) / baseW, dh = Math.abs(innerHeight - baseH) / baseH;
+  if(dw > .25 || dh > .30) violation("Ukuran jendela berubah (split screen/floating)");
+});
+
+// 7. internet terputus
+window.addEventListener("offline", () => violation("Koneksi internet terputus"));
+
+// 8. tombol kembali & refresh/tutup
+history.pushState(null, "", location.href);
+window.addEventListener("popstate", () => { history.pushState(null, "", location.href); violation("Menekan tombol kembali"); });
+window.addEventListener("beforeunload", e => { if(S.started && !S.finished){ e.preventDefault(); e.returnValue = ""; } });
+
+// 9. sentuhan banyak jari (zoom / gesture multitasking)
+on("touchstart", e => { if(S.started && !S.locked && e.touches.length > 2) violation("Gestur multi-jari terdeteksi"); }, {passive:true});
+
+// 10. wake lock hilang saat kembali ke halaman
+on("visibilitychange", () => { if(!document.hidden && S.started && !S.locked) keepAwake(); });
+
+// =====================================================
+// PEMULIHAN SETELAH REFRESH
+// =====================================================
+$("vmax").innerText = CONFIG.MAX_VIOLATIONS;
+document.querySelectorAll(".maxText").forEach(n => n.innerText = CONFIG.MAX_VIOLATIONS);
+if(S.finished){ finishExam("Ujian sudah selesai."); }
+else if(S.started){
+  $("start").style.display = "none"; $("bar").style.display = "flex";
+  $("who").innerText = S.name + " (" + S.kelas + ")"; $("vc").innerText = S.violations; runTimer();
+  if(!S.locked){ S.reason = "Halaman dimuat ulang/ditutup saat ujian"; S.locked = true; S.violations++; S.log.push({t:new Date().toLocaleTimeString("id-ID"), r:S.reason}); save(); report("pelanggaran", S.reason); }
+  showLock();
+}
+</script>
 </body>
 </html>

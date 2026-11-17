@@ -5,14 +5,20 @@
   <meta charset="UTF-8">
   <meta name="viewport"
         content="width=device-width, initial-scale=1">
+
   <title>Ujian Online</title>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: Arial, sans-serif;
       margin: 0;
       background: #f3f4f6;
       text-align: center;
+      color: #1f2937;
     }
 
     header {
@@ -21,19 +27,59 @@
       padding: 18px;
     }
 
+    header h2 {
+      margin: 0;
+    }
+
     #warning {
       display: none;
       background: #fee2e2;
       color: #b91c1c;
       padding: 15px;
       font-weight: bold;
+      border: 2px solid #dc2626;
+      margin: 12px;
+      border-radius: 8px;
     }
 
-    #exam {
-      display: none;
-      width: 100%;
-      height: 85vh;
-      border: none;
+    #start {
+      padding: 15px;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    .volume-check {
+      background: #fff7ed;
+      color: #9a3412;
+      padding: 18px;
+      margin: 20px 0;
+      border-radius: 10px;
+      border: 1px solid #fed7aa;
+      text-align: left;
+    }
+
+    .volume-check h3 {
+      text-align: center;
+      margin-top: 0;
+    }
+
+    .volume-check p {
+      line-height: 1.5;
+    }
+
+    .volume-check label {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 15px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .volume-check input {
+      margin-top: 3px;
+      width: 18px;
+      height: 18px;
     }
 
     button {
@@ -43,114 +89,361 @@
       padding: 14px 25px;
       border-radius: 8px;
       font-size: 16px;
-      margin: 20px;
+      margin: 10px 0;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .test-button {
+      background: #ea580c;
+    }
+
+    #startExamButton:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    #exam {
+      display: none;
+      width: 100%;
+      height: 85vh;
+      border: none;
+      background: white;
+    }
+
+    #violationCount {
+      display: none;
+      color: #b91c1c;
+      font-weight: bold;
+      padding: 8px;
+    }
+
+    footer {
+      color: #6b7280;
+      font-size: 12px;
+      padding: 15px;
     }
   </style>
 </head>
 
 <body>
 
-<header>
-  <h2>UJIAN ONLINE</h2>
-  <p>Sistem Pengawasan Ujian</p>
-</header>
+  <header>
+    <h2>UJIAN ONLINE</h2>
+    <p>Sistem Pengawasan Ujian</p>
+  </header>
 
-<div id="warning">
-  PERINGATAN! Kamu telah meninggalkan halaman ujian.
-  <br>
-  Jangan mengulangi tindakan ini!
-</div>
+  <!-- PERINGATAN PELANGGARAN -->
+  <div id="warning">
+    ⚠️ PERINGATAN!
 
-<div id="start">
-  <h3>Selamat Mengerjakan</h3>
-  <p>
-    Jangan keluar dari halaman ujian atau membuka
-    aplikasi lain selama ujian berlangsung.
-  </p>
+    <br><br>
 
-  <button onclick="startExam()">
-    MULAI UJIAN
-  </button>
-</div>
+    Kamu telah meninggalkan halaman ujian.
+
+    <br>
+
+    Jangan mengulangi tindakan ini!
+  </div>
+
+  <div id="violationCount">
+    Jumlah pelanggaran: 0
+  </div>
+
+  <!-- HALAMAN AWAL -->
+  <div id="start">
+
+    <h3>Selamat Mengerjakan</h3>
+
+    <p>
+      Silakan lakukan pengecekan volume HP sebelum
+      memulai ujian.
+    </p>
+
+    <!-- PENGECEKAN VOLUME -->
+    <div class="volume-check">
+
+      <h3>🔊 PENGECEKAN VOLUME HP</h3>
+
+      <p>
+        1. Naikkan volume media HP hingga maksimal.
+      </p>
+
+      <p>
+        2. Pastikan HP tidak dalam mode senyap.
+      </p>
+
+      <p>
+        3. Tekan tombol tes suara di bawah ini.
+      </p>
+
+      <button
+        type="button"
+        class="test-button"
+        onclick="testAlarm()">
+
+        🔊 TEST SUARA ALARM
+
+      </button>
+
+      <p id="testStatus">
+        Belum melakukan tes suara.
+      </p>
+
+      <label>
+        <input
+          type="checkbox"
+          id="volumeConfirmed"
+          onchange="checkVolume()">
+
+        Saya sudah menaikkan volume HP dan
+        mendengar suara tes alarm.
+      </label>
+
+    </div>
+
+    <p>
+      Jangan keluar dari halaman ujian atau membuka
+      aplikasi lain selama ujian berlangsung.
+    </p>
+
+    <button
+      id="startExamButton"
+      onclick="startExam()"
+      disabled>
+
+      MULAI UJIAN
+
+    </button>
+
+  </div>
+
+  <!-- GOOGLE FORMS -->
+  <iframe
+    id="exam"
+    src="https://docs.google.com/forms/d/e/1FAIpQLScNVGLwyNF-BsAChJkrHLZBaL8dLOBmL4Z1mkWfu3PkxeMO2A/viewform?embedded=true"
+    width="100%"
+    height="600"
+    frameborder="0"
+    allow="autoplay">
+
+    Memuat formulir...
+
+  </iframe>
+
+  <footer>
+    Sistem Ujian Online
+  </footer>
+
+  <script>
+
+    // ==================================
+    // VARIABEL SISTEM
+    // ==================================
+
+    let examStarted = false;
+    let leftPage = false;
+    let violations = 0;
+    let audioContext = null;
+    let volumeTested = false;
 
 
-<iframe
-  id="exam"
-  src="https://docs.google.com/forms/d/e/1FAIpQLScNVGLwyNF-BsAChJkrHLZBaL8dLOBmL4Z1mkWfu3PkxeMO2A/viewform?embedded=true"
-  width="100%"
-  height="600"
-  frameborder="0"
-  allow="autoplay">
-  Memuat…
-</iframe>
+    // ==================================
+    // INISIALISASI AUDIO
+    // ==================================
 
+    function initializeAudio() {
 
-<script>
-  let examStarted = false;
-  let leftPage = false;
-  let violations = 0;
-  let audioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        window.webkitAudioContext;
 
-  async function startExam() {
-    // Membuka izin audio melalui interaksi siswa
-    const AudioCtx =
-      window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) {
+        alert("Browser tidak mendukung audio alarm.");
+        return false;
+      }
 
-    if (AudioCtx) {
-      audioContext = new AudioCtx();
-      await audioContext.resume();
+      if (!audioContext) {
+        audioContext = new AudioCtx();
+      }
+
+      return true;
     }
 
-    examStarted = true;
 
-    document.getElementById("start").style.display = "none";
-    document.getElementById("exam").style.display = "block";
-  }
+    // ==================================
+    // MEMBUAT SUARA ALARM
+    // ==================================
 
-  function playAlarm() {
-    if (audioContext && audioContext.state === "running") {
-      const oscillator = audioContext.createOscillator();
-      const gain = audioContext.createGain();
+    async function playAlarm() {
 
-      oscillator.connect(gain);
-      gain.connect(audioContext.destination);
+      if (!initializeAudio()) return;
 
-      oscillator.frequency.value = 1000;
-      gain.gain.value = 0.3;
+      try {
 
-      oscillator.start();
+        if (audioContext.state !== "running") {
+          await audioContext.resume();
+        }
 
-      setTimeout(() => {
+        const oscillator =
+          audioContext.createOscillator();
+
+        const gain =
+          audioContext.createGain();
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+
+        oscillator.type = "square";
+        oscillator.frequency.value = 1000;
+
+        // Kekuatan sinyal suara
+        gain.gain.value = 0.8;
+
+        oscillator.start();
+
+        // Alarm berbunyi selama 1 detik
+        await new Promise(resolve => {
+          setTimeout(resolve, 1000);
+        });
+
         oscillator.stop();
-      }, 700);
+
+      } catch (error) {
+        console.log("Alarm audio gagal:", error);
+      }
+
+      // Getaran HP
+      if (navigator.vibrate) {
+        navigator.vibrate([300, 150, 300]);
+      }
+
     }
 
-    if (navigator.vibrate) {
-      navigator.vibrate([300, 150, 300]);
+
+    // ==================================
+    // TES SUARA ALARM
+    // ==================================
+
+    async function testAlarm() {
+
+      if (!initializeAudio()) return;
+
+      try {
+
+        await audioContext.resume();
+
+        document.getElementById("testStatus").innerText =
+          "Memutar tes suara...";
+
+        await playAlarm();
+
+        volumeTested = true;
+
+        document.getElementById("testStatus").innerText =
+          "✓ Tes suara selesai. Silakan centang konfirmasi.";
+
+        checkVolume();
+
+      } catch (error) {
+
+        alert("Tes audio gagal. Silakan coba kembali.");
+
+      }
+
     }
-  }
 
-  document.addEventListener("visibilitychange", () => {
-    if (!examStarted) return;
 
-    if (document.hidden) {
-      leftPage = true;
-    } else if (leftPage) {
-      violations++;
+    // ==================================
+    // CEK PERSETUJUAN VOLUME
+    // ==================================
 
-      document.getElementById("warning").style.display = "block";
+    function checkVolume() {
 
-      playAlarm();
+      const checked =
+        document.getElementById("volumeConfirmed").checked;
 
-      alert(
-        "PERINGATAN! Kamu meninggalkan halaman ujian. " +
-        "Jumlah pelanggaran: " + violations
-      );
+      document.getElementById("startExamButton").disabled =
+        !(checked && volumeTested);
 
-      leftPage = false;
     }
-  });
-</script>
+
+
+    // ==================================
+    // MULAI UJIAN
+    // ==================================
+
+    async function startExam() {
+
+      if (!volumeTested ||
+          !document.getElementById("volumeConfirmed").checked) {
+
+        alert("Silakan lakukan tes suara terlebih dahulu.");
+        return;
+
+      }
+
+      if (audioContext) {
+        await audioContext.resume();
+      }
+
+      examStarted = true;
+
+      document.getElementById("start").style.display = "none";
+
+      document.getElementById("exam").style.display = "block";
+
+    }
+
+
+    // ==================================
+    // SISTEM DETEKSI KELUAR HALAMAN
+    // ==================================
+
+    document.addEventListener(
+      "visibilitychange",
+      async function() {
+
+        if (!examStarted) return;
+
+        if (document.hidden) {
+
+          // Siswa meninggalkan halaman
+          leftPage = true;
+
+        } else if (leftPage) {
+
+          // Siswa kembali ke halaman ujian
+          violations++;
+
+          document.getElementById("warning").style.display =
+            "block";
+
+          document.getElementById("violationCount").style.display =
+            "block";
+
+          document.getElementById("violationCount").innerText =
+            "Jumlah pelanggaran: " + violations;
+
+          // Bunyi alarm
+          await playAlarm();
+
+          // Peringatan
+          alert(
+            "⚠️ PERINGATAN!\n\n" +
+            "Kamu telah meninggalkan halaman ujian.\n\n" +
+            "Jumlah pelanggaran: " + violations
+          );
+
+          leftPage = false;
+
+        }
+
+      }
+    );
+
+
+  </script>
 
 </body>
 </html>

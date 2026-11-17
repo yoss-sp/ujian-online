@@ -1,0 +1,156 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+  <title>Ujian Online</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f3f4f6;
+      text-align: center;
+    }
+
+    header {
+      background: #1d4ed8;
+      color: white;
+      padding: 18px;
+    }
+
+    #warning {
+      display: none;
+      background: #fee2e2;
+      color: #b91c1c;
+      padding: 15px;
+      font-weight: bold;
+    }
+
+    #exam {
+      display: none;
+      width: 100%;
+      height: 85vh;
+      border: none;
+    }
+
+    button {
+      background: #1d4ed8;
+      color: white;
+      border: 0;
+      padding: 14px 25px;
+      border-radius: 8px;
+      font-size: 16px;
+      margin: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h2>UJIAN ONLINE</h2>
+  <p>Sistem Pengawasan Ujian</p>
+</header>
+
+<div id="warning">
+  PERINGATAN! Kamu telah meninggalkan halaman ujian.
+  <br>
+  Jangan mengulangi tindakan ini!
+</div>
+
+<div id="start">
+  <h3>Selamat Mengerjakan</h3>
+  <p>
+    Jangan keluar dari halaman ujian atau membuka
+    aplikasi lain selama ujian berlangsung.
+  </p>
+
+  <button onclick="startExam()">
+    MULAI UJIAN
+  </button>
+</div>
+
+
+<iframe
+  id="exam"
+  src="https://docs.google.com/forms/d/e/1FAIpQLScNVGLwyNF-BsAChJkrHLZBaL8dLOBmL4Z1mkWfu3PkxeMO2A/viewform?embedded=true"
+  width="100%"
+  height="600"
+  frameborder="0"
+  allow="autoplay">
+  Memuat…
+</iframe>
+
+
+<script>
+  let examStarted = false;
+  let leftPage = false;
+  let violations = 0;
+  let audioContext;
+
+  async function startExam() {
+    // Membuka izin audio melalui interaksi siswa
+    const AudioCtx =
+      window.AudioContext || window.webkitAudioContext;
+
+    if (AudioCtx) {
+      audioContext = new AudioCtx();
+      await audioContext.resume();
+    }
+
+    examStarted = true;
+
+    document.getElementById("start").style.display = "none";
+    document.getElementById("exam").style.display = "block";
+  }
+
+  function playAlarm() {
+    if (audioContext && audioContext.state === "running") {
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+
+      oscillator.frequency.value = 1000;
+      gain.gain.value = 0.3;
+
+      oscillator.start();
+
+      setTimeout(() => {
+        oscillator.stop();
+      }, 700);
+    }
+
+    if (navigator.vibrate) {
+      navigator.vibrate([300, 150, 300]);
+    }
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (!examStarted) return;
+
+    if (document.hidden) {
+      leftPage = true;
+    } else if (leftPage) {
+      violations++;
+
+      document.getElementById("warning").style.display = "block";
+
+      playAlarm();
+
+      alert(
+        "PERINGATAN! Kamu meninggalkan halaman ujian. " +
+        "Jumlah pelanggaran: " + violations
+      );
+
+      leftPage = false;
+    }
+  });
+</script>
+
+</body>
+</html>

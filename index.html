@@ -441,20 +441,16 @@ on("visibilitychange", () => {
 window.addEventListener("pagehide", () => violation("Halaman ditutup/ditinggalkan"));
 
 // 2. jendela kehilangan fokus (notifikasi, floating window, split screen)
-window.addEventListener("blur", () => {
-  setTimeout(() => {
-    // klik di dalam iframe Google Form: document.hasFocus() tetap true, jadi bukan pelanggaran
-    if(!document.hasFocus() && !document.hidden) violation("Jendela ujian kehilangan fokus");
-  }, 400);
-});
-// cadangan: beberapa browser tidak selalu memicu event blur
-let noFocusCount = 0;
+let focusLostAt = 0;
 setInterval(() => {
-  if(!S.started || S.locked || S.finished || document.hidden) { noFocusCount = 0; return; }
-  noFocusCount = document.hasFocus() ? 0 : noFocusCount + 1;
-  if(noFocusCount >= 2){ noFocusCount = 0; violation("Jendela ujian kehilangan fokus"); }
+  if(!S.started || S.locked || S.finished || document.hidden){ focusLostAt = 0; return; }
+  if(document.hasFocus()){ focusLostAt = 0; return; }
+  if(!focusLostAt){ focusLostAt = Date.now(); return; }
+  if(Date.now() - focusLostAt > CONFIG.FOCUS_GRACE_SECONDS * 1000){
+    focusLostAt = 0;
+    violation("Jendela ujian kehilangan fokus lebih dari " + CONFIG.FOCUS_GRACE_SECONDS + " detik");
+  }
 }, 1000);
-
 // 3. keluar fullscreen
 on("fullscreenchange", () => {
   if(CONFIG.REQUIRE_FULLSCREEN && !document.fullscreenElement) violation("Keluar dari layar penuh");
@@ -522,6 +518,7 @@ on("visibilitychange", () => { if(!document.hidden && S.started && !S.locked) ke
   });
   if(pick && CONFIG.MAPEL[pick]){ sel.value = pick; sel.disabled = true; }   // link ?mapel=mtk mengunci pilihan
 })();
+FOCUS_GRACE_SECONDS: 8,
 $("vmax").innerText = CONFIG.MAX_VIOLATIONS;
 document.querySelectorAll(".maxText").forEach(n => n.innerText = CONFIG.MAX_VIOLATIONS);
 if(S.finished){ finishExam("Ujian sudah selesai.", true); }

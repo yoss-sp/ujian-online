@@ -159,13 +159,22 @@ const CONFIG = {
 // =====================================================
 // STATE (disimpan di localStorage agar tahan refresh)
 // =====================================================
-const KEY = "exam_state_v2";
-let S = load() || {started:false, locked:false, violations:0, log:[], name:"", kelas:"", endAt:0, reason:""};
+const ACTIVE = "exam_active_mapel";                       // mapel yang sedang dikerjakan di perangkat ini
+const keyFor = mk => "exam_state_v3_" + mk;               // status tiap mapel disimpan terpisah
+const fresh = () => ({started:false, locked:false, violations:0, log:[], name:"", kelas:"", endAt:0, reason:""});
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+const urlMk = new URLSearchParams(location.search).get("mapel");
+let curMk = lsGet(ACTIVE);
+if(!curMk || !CONFIG.MAPEL[curMk]) curMk = CONFIG.MAPEL[urlMk] ? urlMk : null;
+let KEY = curMk ? keyFor(curMk) : null;
+let S = (KEY && load(KEY)) || fresh();
 let audioCtx = null, volumeTested = false, alarmStop = null, lastViolationAt = 0, wakeLock = null, timerId = null;
 const $ = id => document.getElementById(id);
 
-function load(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
-function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+function load(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+function save(){ if(KEY) lsSet(KEY, JSON.stringify(S)); }
 
 // =====================================================
 // ALARM
@@ -246,6 +255,9 @@ async function startExam(){
   if(!name || !kelas){ alert("Isi nama dan kelas terlebih dahulu."); return; }
   if(!mk || !CONFIG.MAPEL[mk]){ alert("Pilih mata pelajaran terlebih dahulu."); return; }
   if(!volumeTested){ alert("Lakukan tes suara terlebih dahulu."); return; }
+  const prev = load(keyFor(mk));
+  if(prev && prev.finished){ alert("Mata pelajaran ini sudah selesai dikerjakan di perangkat ini."); return; }
+  KEY = keyFor(mk); S = fresh(); lsSet(ACTIVE, mk);
   S.name = name; S.kelas = kelas; S.mapel = mk; S.started = true; S.locked = false;
   const menit = CONFIG.MAPEL[mk].menit;
   S.endAt = menit ? Date.now() + menit * 60000 : 0;
@@ -327,13 +339,13 @@ function runTimer(){
     $("timer").innerText = "⏱ " + m + ":" + String(sec).padStart(2, "0");
   }, 1000);
 }
-function finishExam(msg){
-  stopAlarm(); clearInterval(timerId);
+function finishExam(msg, silent){
+  stopAlarm(); clearInterval(timerId); lsDel(ACTIVE);
   S.started = false; S.locked = false; S.finished = true; save();
   $("exam").style.display = "none"; $("lockScreen").style.display = "none"; $("finishScreen").style.display = "none"; $("bar").style.display = "none"; $("timeBanner").style.display = "none";
   $("end").style.display = "block"; $("endMsg").innerText = msg;
   if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
-  report("selesai", msg);
+  if(!silent) report("selesai", msg);
 }
 
 // =====================================================
@@ -511,7 +523,7 @@ on("visibilitychange", () => { if(!document.hidden && S.started && !S.locked) ke
 })();
 $("vmax").innerText = CONFIG.MAX_VIOLATIONS;
 document.querySelectorAll(".maxText").forEach(n => n.innerText = CONFIG.MAX_VIOLATIONS);
-if(S.finished){ finishExam("Ujian sudah selesai."); }
+if(S.finished){ finishExam("Ujian sudah selesai.", true); }
 else if(S.started){
   loadForm(); $("start").style.display = "none"; $("bar").style.display = "flex";
   $("who").innerText = S.name + " (" + S.kelas + ") · " + ((CONFIG.MAPEL[S.mapel] || {}).nama || ""); $("vc").innerText = S.violations; runTimer();

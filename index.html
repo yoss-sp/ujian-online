@@ -52,7 +52,8 @@ footer{color:#6b7280;font-size:12px;padding:12px}
   <div class="card">
     <h3>👤 Identitas</h3>
     <input class="field" id="studentName" placeholder="Nama lengkap" autocomplete="off">
-    <input class="field" id="studentClass" placeholder="Kelas / No. absen" autocomplete="off">
+    <input class="field" id="studentClass" placeholder="Kelas (contoh: 9A)" autocomplete="off">
+    <input class="field" id="studentAbsen" placeholder="No. absen" inputmode="numeric" autocomplete="off">
     <select class="field" id="mapel"><option value="">-- Pilih mata pelajaran --</option></select>
   </div>
 
@@ -153,7 +154,7 @@ const CONFIG = {
   ALARM_SECONDS: 0,                   // jika ALARM_LOOP true, 0 = tanpa henti; isi detik untuk membatasi
 
   // ---- LOG KE GOOGLE SHEETS (opsional) ----
-  WEBHOOK_URL: ""                     // URL Web App Google Apps Script; kosong = tidak dikirim
+  WEBHOOK_URL: "https://script.google.com/macros/s/AKfycbxTQV4-hWhoKRFz5svrHAE2rGA5fJ_C7W3koFW9xkakt0mEGi-07hbcKm67ECWuEyltug/exec"                     // URL Web App Google Apps Script; kosong = tidak dikirim
 };
 
 // =====================================================
@@ -250,15 +251,15 @@ function checkReady(){
 }
 
 async function startExam(){
-  const name = $("studentName").value.trim(), kelas = $("studentClass").value.trim();
+  const name = $("studentName").value.trim(), kelas = $("studentClass").value.trim(), absen = $("studentAbsen").value.trim();
   const mk = $("mapel").value;
-  if(!name || !kelas){ alert("Isi nama dan kelas terlebih dahulu."); return; }
+  if(!name || !kelas || !absen){ alert("Isi nama, kelas, dan no. absen terlebih dahulu."); return; }
   if(!mk || !CONFIG.MAPEL[mk]){ alert("Pilih mata pelajaran terlebih dahulu."); return; }
   if(!volumeTested){ alert("Lakukan tes suara terlebih dahulu."); return; }
   const prev = load(keyFor(mk));
   if(prev && prev.finished){ alert("Mata pelajaran ini sudah selesai dikerjakan di perangkat ini."); return; }
   KEY = keyFor(mk); S = fresh(); lsSet(ACTIVE, mk);
-  S.name = name; S.kelas = kelas; S.mapel = mk; S.started = true; S.locked = false;
+  S.name = name; S.kelas = kelas; S.absen = absen; S.mapel = mk; S.started = true; S.locked = false;
   const menit = CONFIG.MAPEL[mk].menit;
   S.endAt = menit ? Date.now() + menit * 60000 : 0;
   save();
@@ -279,7 +280,7 @@ function showExam(){
   $("start").style.display = "none";
   $("exam").style.display = "block";
   $("bar").style.display = "flex";
-  $("who").innerText = S.name + " (" + S.kelas + ") · " + ((CONFIG.MAPEL[S.mapel] || {}).nama || "");
+  $("who").innerText = S.name + " (" + S.kelas + ", no. " + S.absen + ") · " + ((CONFIG.MAPEL[S.mapel] || {}).nama || "");
   $("vc").innerText = S.violations;
   runTimer();
 }
@@ -422,7 +423,7 @@ $("finishCode").addEventListener("keydown", e => { if(e.key === "Enter") confirm
 
 function report(type, detail){
   if(!CONFIG.WEBHOOK_URL) return;
-  const data = {type, detail, nama:S.name, kelas:S.kelas, mapel:(CONFIG.MAPEL[S.mapel]||{}).nama||"", pelanggaran:S.violations, waktu:new Date().toISOString()};
+  const data = {type, detail, nama:S.name, kelas:S.kelas, absen:S.absen, mapel:(CONFIG.MAPEL[S.mapel]||{}).nama||"", pelanggaran:S.violations, waktu:new Date().toISOString()};
   try{ fetch(CONFIG.WEBHOOK_URL, {method:"POST", mode:"no-cors", keepalive:true, headers:{"Content-Type":"text/plain"}, body:JSON.stringify(data)}); }catch(e){}
 }
 
@@ -526,7 +527,7 @@ document.querySelectorAll(".maxText").forEach(n => n.innerText = CONFIG.MAX_VIOL
 if(S.finished){ finishExam("Ujian sudah selesai.", true); }
 else if(S.started){
   loadForm(); $("start").style.display = "none"; $("bar").style.display = "flex";
-  $("who").innerText = S.name + " (" + S.kelas + ") · " + ((CONFIG.MAPEL[S.mapel] || {}).nama || ""); $("vc").innerText = S.violations; runTimer();
+  $("who").innerText = S.name + " (" + S.kelas + ", no. " + S.absen + ") · " + ((CONFIG.MAPEL[S.mapel] || {}).nama || ""); $("vc").innerText = S.violations; runTimer();
   if(!S.locked){ S.reason = "Halaman dimuat ulang/ditutup saat ujian"; S.locked = true; S.violations++; S.log.push({t:new Date().toLocaleTimeString("id-ID"), r:S.reason}); save(); report("pelanggaran", S.reason); }
   showLock();
 }

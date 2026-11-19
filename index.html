@@ -58,7 +58,6 @@ footer{color:#6b7280;font-size:12px;padding:12px}
     <h3>📋 Aturan Ujian</h3>
     <ul>
       <li>Dilarang keluar dari halaman ujian, pindah tab/aplikasi, atau membuka notifikasi/jendela mengambang.</li>
-      <li>Dilarang keluar dari mode layar penuh.</li>
       <li>Dilarang copy, paste, cut, screenshot, cetak, dan klik kanan / tekan lama.</li>
       <li>Dilarang me-refresh, menutup, atau menekan tombol kembali.</li>
       <li>Dilarang mengubah ukuran jendela (split screen) atau memutus koneksi internet.</li>
@@ -125,7 +124,6 @@ const CONFIG = {
   WARN_MINUTES: [10, 5, 1],           // peringatan sisa waktu (menit)
   GRACE_SECONDS: 60,                  // waktu tambahan setelah timer habis, khusus untuk menekan KIRIM
   FOCUS_GRACE_SECONDS: 15,            // toleransi fokus hilang (dialog Google Form saat Kirim)
-  FULLSCREEN_GRACE_SECONDS: 15,       // waktu untuk kembali ke layar penuh sebelum dihitung pelanggaran
   MAX_VIOLATIONS: 3,                  // batas pelanggaran
   // Daftar mata pelajaran: menit = durasi timer, form = link Google Form mapel itu.
   // form dikosongkan -> memakai DEFAULT_FORM. Kunci (mtk, ipa, ...) dipakai untuk link ?mapel=mtk
@@ -142,7 +140,6 @@ const CONFIG = {
     mandarin:  {nama:"Bahasa Mandarin",                            menit:90,  form:""},
     informatika:{nama:"Informatika",                               menit:90,  form:""}
   },
-  REQUIRE_FULLSCREEN: true,
   KEEP_SCREEN_ON: true,
 
   // ---- ALARM ----
@@ -260,7 +257,6 @@ async function startExam(){
   const menit = CONFIG.MAPEL[mk].menit;
   S.endAt = menit ? Date.now() + menit * 60000 : 0;
   save();
-  await enterFullscreen();
   await keepAwake();
   showExam();
   report("mulai", "Ujian dimulai");
@@ -283,13 +279,8 @@ function showExam(){
 }
 
 // =====================================================
-// FULLSCREEN, WAKE LOCK, TIMER
+// WAKE LOCK, TIMER
 // =====================================================
-async function enterFullscreen(){
-  if(!CONFIG.REQUIRE_FULLSCREEN) return;
-  const el = document.documentElement;
-  try{ if(el.requestFullscreen) await el.requestFullscreen(); else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen(); }catch(e){}
-}
 async function keepAwake(){
   if(!CONFIG.KEEP_SCREEN_ON || !("wakeLock" in navigator)) return;
   try{ wakeLock = await navigator.wakeLock.request("screen"); }catch(e){}
@@ -342,7 +333,6 @@ function finishExam(msg, silent){
   S.started = false; S.locked = false; S.finished = true; save();
   $("exam").style.display = "none"; $("lockScreen").style.display = "none"; $("finishScreen").style.display = "none"; $("bar").style.display = "none"; $("timeBanner").style.display = "none";
   $("end").style.display = "block"; $("endMsg").innerText = msg;
-  if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
   if(!silent) report("selesai", msg);
 }
 
@@ -391,7 +381,7 @@ async function unlockExam(){
   if(final){ S.violations = CONFIG.MAX_VIOLATIONS - 1; save(); }   // beri kesempatan lagi jika pengawas membuka
   $("lockScreen").style.display = "none";
   $("exam").style.display = "block";
-  await enterFullscreen(); await keepAwake();
+  await keepAwake();
   report("buka-kunci", "Dibuka pengawas");
 }
 $("unlockPassword").addEventListener("keydown", e => { if(e.key === "Enter") unlockExam(); });
@@ -452,21 +442,7 @@ setInterval(() => {
   }
 }, 1000);
 
-// 3. keluar fullscreen
-// Chrome bisa keluar dari layar penuh saat dialog Google Form muncul, jadi beri waktu untuk kembali.
-let fsTimer = null;
-on("fullscreenchange", () => {
-  if(!CONFIG.REQUIRE_FULLSCREEN || !S.started || S.finished) return;
-  clearTimeout(fsTimer);
-  if(document.fullscreenElement){ $("timeBanner").style.display = "none"; return; }
-  banner("Layar penuh terlepas. Ketuk di sini untuk kembali, atau ujian terkunci dalam " + CONFIG.FULLSCREEN_GRACE_SECONDS + " detik.", "#dc2626");
-  $("timeBanner").onclick = () => enterFullscreen();
-  fsTimer = setTimeout(() => {
-    if(!document.fullscreenElement && $("finishScreen").style.display !== "flex") violation("Keluar dari layar penuh");
-  }, CONFIG.FULLSCREEN_GRACE_SECONDS * 1000);
-});
-
-// 4. copy / paste / cut / klik kanan / pilih teks / drag / cetak
+// 3. copy / paste / cut / klik kanan / pilih teks / drag / cetak
 ["copy","cut","paste","contextmenu","dragstart","selectstart"].forEach(t =>
   on(t, e => {
     if(!S.started) return;
@@ -476,7 +452,7 @@ on("fullscreenchange", () => {
   }));
 window.addEventListener("beforeprint", () => violation("Mencoba mencetak halaman"));
 
-// 5. pintasan keyboard terlarang
+// 4. pintasan keyboard terlarang
 on("keydown", e => {
   if(!S.started) return;
   const k = e.key.toLowerCase(), c = e.ctrlKey || e.metaKey;
@@ -487,7 +463,7 @@ on("keydown", e => {
   }
 });
 
-// 6. ukuran jendela berubah (split screen / floating) & rotasi
+// 5. ukuran jendela berubah (split screen / floating) & rotasi
 let baseW = innerWidth, baseH = innerHeight;
 window.addEventListener("resize", () => {
   if(!S.started || S.locked) return;
@@ -496,7 +472,7 @@ window.addEventListener("resize", () => {
   if(Math.abs(innerWidth - baseW) / baseW > .25) violation("Ukuran jendela berubah (split screen/floating)");
 });
 
-// 7. internet terputus
+// 6. internet terputus
 let offlineTimer = null;
 window.addEventListener("offline", () => {
   clearTimeout(offlineTimer);
@@ -504,15 +480,15 @@ window.addEventListener("offline", () => {
 });
 window.addEventListener("online", () => clearTimeout(offlineTimer));
 
-// 8. tombol kembali & refresh/tutup
+// 7. tombol kembali & refresh/tutup
 history.pushState(null, "", location.href);
 window.addEventListener("popstate", () => { history.pushState(null, "", location.href); violation("Menekan tombol kembali"); });
 window.addEventListener("beforeunload", e => { if(S.started && !S.finished){ e.preventDefault(); e.returnValue = ""; } });
 
-// 9. sentuhan banyak jari (zoom / gesture multitasking)
+// 8. sentuhan banyak jari (zoom / gesture multitasking)
 on("touchstart", e => { if(S.started && !S.locked && e.touches.length > 2) violation("Gestur multi-jari terdeteksi"); }, {passive:true});
 
-// 10. wake lock hilang saat kembali ke halaman
+// 9. wake lock hilang saat kembali ke halaman
 on("visibilitychange", () => { if(!document.hidden && S.started && !S.locked) keepAwake(); });
 
 // =====================================================

@@ -26,7 +26,7 @@ button:disabled{background:#9ca3af;cursor:not-allowed}
 #exam{display:none;width:100%;height:calc(100vh - 40px);border:none;background:#fff}
 #end{display:none;padding:40px 20px}
 footer{color:#6b7280;font-size:12px;padding:12px}
-#lockScreen,#finishScreen{display:none;position:fixed;inset:0;z-index:99999;background:#111827;padding:20px;align-items:center;justify-content:center;overflow:auto}
+#lockScreen,#finishScreen,#timeupScreen{display:none;position:fixed;inset:0;z-index:99999;background:#111827;padding:20px;align-items:center;justify-content:center;overflow:auto}
 .lock-card{background:#fff;padding:25px;border-radius:15px;width:100%;max-width:400px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
 .lock-icon{font-size:55px}
 .lock-card h2{color:#dc2626;margin:6px 0}
@@ -111,6 +111,18 @@ footer{color:#6b7280;font-size:12px;padding:12px}
   </div>
 </div>
 
+<div id="timeupScreen">
+  <div class="lock-card">
+    <div class="lock-icon">⏰</div>
+    <h2>WAKTU UJIAN HABIS</h2>
+    <div id="reason">Waktu mengerjakan dan masa tambahan sudah berakhir.</div>
+    <p><b>Lapor ke pengawas.</b> Pengawas dapat menambah waktu atau menyelesaikan ujian dengan memasukkan password.</p>
+    <input class="field" type="password" id="timeupPassword" placeholder="Password pengawas" autocomplete="off">
+    <button onclick="reopenAfterTimeUp()">LANJUTKAN / SELESAIKAN</button>
+    <p id="timeupError" style="color:#dc2626;font-size:14px;display:none">Password salah!</p>
+  </div>
+</div>
+
 <footer>Sistem Ujian Online</footer>
 
 <script>
@@ -121,25 +133,28 @@ const CONFIG = {
   ADMIN_PASSWORD: "UJIAN2026",        // password buka kunci biasa
   FINAL_PASSWORD: "PENGAWAS2026",     // password jika pelanggaran sudah mencapai batas
   FINISH_PASSWORD: "SELESAI2026",      // kode selesai: dimasukkan pengawas setelah HP diserahkan
+  TIMEUP_PASSWORD: "WAKTU2026",       // password pengawas untuk membuka lagi setelah waktu + masa tambahan habis
+  EXTRA_MINUTES: 10,                  // tambahan waktu (menit) yang diberikan saat pengawas membuka lagi
+                                      // (di layar waktu habis, memasukkan FINISH_PASSWORD akan menyelesaikan ujian)
   WARN_MINUTES: [10, 5, 1],           // peringatan sisa waktu (menit)
   GRACE_SECONDS: 60,                  // waktu tambahan setelah timer habis, khusus untuk menekan KIRIM
   FOCUS_GRACE_SECONDS: 15,            // toleransi fokus hilang (dialog Google Form saat Kirim)
   MAX_VIOLATIONS: 3,                  // batas pelanggaran
   // Daftar mata pelajaran: menit = durasi timer, form = link Google Form mapel itu.
   // form dikosongkan -> memakai DEFAULT_FORM. Kunci (mtk, ipa, ...) dipakai untuk link ?mapel=mtk
-  DEFAULT_FORM: "",
-  MAPEL: {
-    pancasila: {nama:"Pendidikan Pancasila",                       menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"},
-    ind:       {nama:"Bahasa Indonesia",                           menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"},
-    mtk:       {nama:"Matematika",                                 menit:120, form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"},
-    ipas:      {nama:"Ilmu Pengetahuan Alam dan Sosial",           menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"},
-    sbp:       {nama:"Seni Budaya dan Prakarya",                   menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"},
-    pjok:      {nama:"Pend. Jasmani, Olahraga dan Kesehatan",      menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"},
-    sunda:     {nama:"Bahasa dan Sastra Sunda",                    menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"},
-    ing:       {nama:"Bahasa Inggris",                             menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"},
-    mandarin:  {nama:"Bahasa Mandarin",                            menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"},
-    informatika:{nama:"Informatika",                               menit:6,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}
-  },
+  DEFAULT_FORM: "https://docs.google.com/forms/d/e/1FAIpQLScNVGLwyNF-BsAChJkrHLZBaL8dLOBmL4Z1mkWfu3PkxeMO2A/viewform?embedded=true",
+MAPEL: { 
+  pancasila: {nama:"Pendidikan Pancasila",                       menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
+  ind:       {nama:"Bahasa Indonesia",                           menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
+  mtk:       {nama:"Matematika",                                 menit:120, form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
+  ipas:      {nama:"Ilmu Pengetahuan Alam dan Sosial",           menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
+  sbp:       {nama:"Seni Budaya dan Prakarya",                   menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
+  pjok:      {nama:"Pend. Jasmani, Olahraga dan Kesehatan",      menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
+  sunda:     {nama:"Bahasa dan Sastra Sunda",                    menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
+  ing:       {nama:"Bahasa Inggris",                             menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
+  mandarin:  {nama:"Bahasa Mandarin",                            menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
+  informatika:{nama:"Informatika",                               menit:12,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"} 
+},
   KEEP_SCREEN_ON: true,
 
   // ---- ALARM ----
@@ -301,13 +316,14 @@ function chime(){
   if(navigator.vibrate) navigator.vibrate(200);
 }
 function runTimer(){
+  if(S.timeUp){ clearInterval(timerId); return; }
   if(!S.endAt){ $("timer").innerText = ""; return; }
   clearInterval(timerId);
   timerId = setInterval(() => {
     const left = S.endAt - Date.now();
     const grace = CONFIG.GRACE_SECONDS * 1000;
     if(left <= -grace){
-      finishExam("Waktu ujian habis. Jawaban yang belum dikirim tidak tersimpan. Segera lapor ke pengawas.");
+      timeIsUp();
       return;
     }
     if(left <= 0){                                           // masa tambahan: hanya untuk menekan KIRIM
@@ -328,9 +344,45 @@ function runTimer(){
     $("timer").innerText = "⏱ " + m + ":" + String(sec).padStart(2, "0");
   }, 1000);
 }
+// waktu + masa tambahan habis: kunci layar, tunggu pengawas
+function timeIsUp(){
+  clearInterval(timerId); stopAlarm();
+  S.timeUp = true; save();
+  $("timeBanner").style.display = "none";
+  showTimeUp();
+  startAlarm({loop:false, repeat:3, seconds:3});
+  report("waktu-habis", "Waktu habis, menunggu pengawas");
+}
+function showTimeUp(){
+  $("exam").style.display = "none"; $("lockScreen").style.display = "none"; $("finishScreen").style.display = "none";
+  $("timeupScreen").style.display = "flex";
+  $("timer").innerText = "⏱ 0:00";
+  $("timeupPassword").value = ""; $("timeupError").style.display = "none";
+}
+async function reopenAfterTimeUp(){
+  const v = $("timeupPassword").value;
+  if(v === CONFIG.FINISH_PASSWORD){ finishExam("Ujian diselesaikan oleh pengawas."); return; }
+  if(v !== CONFIG.TIMEUP_PASSWORD){
+    $("timeupError").style.display = "block"; $("timeupPassword").value = ""; return;
+  }
+  stopAlarm();
+  S.timeUp = false; S.timeUpChime = false;
+  S.endAt = Date.now() + CONFIG.EXTRA_MINUTES * 60000;
+  CONFIG.WARN_MINUTES.forEach(w => { S["warn" + w] = w >= CONFIG.EXTRA_MINUTES; });   // peringatan yang lebih besar dari tambahan dianggap sudah lewat
+  save();
+  $("timeupScreen").style.display = "none";
+  runTimer();
+  if(S.locked){ showLock(); startAlarm(); }
+  else { $("exam").style.display = "block"; }
+  await keepAwake();
+  report("waktu-ditambah", "Pengawas menambah waktu " + CONFIG.EXTRA_MINUTES + " menit");
+}
+$("timeupPassword").addEventListener("keydown", e => { if(e.key === "Enter") reopenAfterTimeUp(); });
+
 function finishExam(msg, silent){
   stopAlarm(); clearInterval(timerId); lsDel(ACTIVE);
   S.started = false; S.locked = false; S.finished = true; save();
+  $("timeupScreen").style.display = "none";
   $("exam").style.display = "none"; $("lockScreen").style.display = "none"; $("finishScreen").style.display = "none"; $("bar").style.display = "none"; $("timeBanner").style.display = "none";
   $("end").style.display = "block"; $("endMsg").innerText = msg;
   if(!silent) report("selesai", msg);
@@ -340,7 +392,7 @@ function finishExam(msg, silent){
 // PELANGGARAN & KUNCI
 // =====================================================
 function violation(reason){
-  if(!S.started || S.finished) return;
+  if(!S.started || S.finished || S.timeUp) return;
   const now = Date.now();
   if(S.locked || now - lastViolationAt < 1500) return;   // cegah hitungan ganda
   lastViolationAt = now;
@@ -421,7 +473,7 @@ const on = (t, fn, o) => document.addEventListener(t, fn, o);
 
 // 1. pindah tab / aplikasi / layar mati — dihitung saat meninggalkan
 on("visibilitychange", () => {
-  if(!S.started || S.finished) return;
+  if(!S.started || S.finished || S.timeUp) return;
   if(document.hidden) violation("Meninggalkan halaman ujian (pindah tab/aplikasi)");
   else if(S.locked) startAlarm();                         // bunyikan lagi saat kembali (browser menahan audio di background)
 });
@@ -433,7 +485,7 @@ window.addEventListener("pagehide", () => violation("Halaman ditutup/ditinggalka
 // (Pindah tab/aplikasi di HP tetap terdeteksi langsung lewat visibilitychange di atas.)
 let focusLostAt = 0;
 setInterval(() => {
-  if(!S.started || S.locked || S.finished || document.hidden){ focusLostAt = 0; return; }
+  if(!S.started || S.locked || S.finished || S.timeUp || document.hidden){ focusLostAt = 0; return; }
   if(document.hasFocus()){ focusLostAt = 0; return; }
   if(!focusLostAt){ focusLostAt = Date.now(); return; }
   if(Date.now() - focusLostAt > CONFIG.FOCUS_GRACE_SECONDS * 1000){
@@ -510,8 +562,11 @@ if(S.finished){ finishExam("Ujian sudah selesai.", true); }
 else if(S.started){
   loadForm(); $("start").style.display = "none"; $("bar").style.display = "flex";
   $("who").innerText = ((CONFIG.MAPEL[S.mapel] || {}).nama || ""); $("vc").innerText = S.violations; runTimer();
-  if(!S.locked){ S.reason = "Halaman dimuat ulang/ditutup saat ujian"; S.locked = true; S.violations++; S.log.push({t:new Date().toLocaleTimeString("id-ID"), r:S.reason}); save(); report("pelanggaran", S.reason); }
-  showLock();
+  if(S.timeUp){ showTimeUp(); }
+  else {
+    if(!S.locked){ S.reason = "Halaman dimuat ulang/ditutup saat ujian"; S.locked = true; S.violations++; S.log.push({t:new Date().toLocaleTimeString("id-ID"), r:S.reason}); save(); report("pelanggaran", S.reason); }
+    showLock();
+  }
 }
 </script>
 </body>

@@ -50,10 +50,7 @@ footer{color:#6b7280;font-size:12px;padding:12px}
   <h3>Selamat Mengerjakan</h3>
 
   <div class="card">
-    <h3>👤 Identitas</h3>
-    <input class="field" id="studentName" placeholder="Nama lengkap" autocomplete="off">
-    <input class="field" id="studentClass" placeholder="Kelas (contoh: 9A)" autocomplete="off">
-    <input class="field" id="studentAbsen" placeholder="No. absen" inputmode="numeric" autocomplete="off">
+    <h3>📚 Pilih Mata Pelajaran</h3>
     <select class="field" id="mapel"><option value="">-- Pilih mata pelajaran --</option></select>
   </div>
 
@@ -127,6 +124,8 @@ const CONFIG = {
   FINISH_PASSWORD: "SELESAI2026",      // kode selesai: dimasukkan pengawas setelah HP diserahkan
   WARN_MINUTES: [10, 5, 1],           // peringatan sisa waktu (menit)
   GRACE_SECONDS: 60,                  // waktu tambahan setelah timer habis, khusus untuk menekan KIRIM
+  FOCUS_GRACE_SECONDS: 15,            // toleransi fokus hilang (dialog Google Form saat Kirim)
+  FULLSCREEN_GRACE_SECONDS: 15,       // waktu untuk kembali ke layar penuh sebelum dihitung pelanggaran
   MAX_VIOLATIONS: 3,                  // batas pelanggaran
   // Daftar mata pelajaran: menit = durasi timer, form = link Google Form mapel itu.
   // form dikosongkan -> memakai DEFAULT_FORM. Kunci (mtk, ipa, ...) dipakai untuk link ?mapel=mtk
@@ -154,7 +153,7 @@ const CONFIG = {
   ALARM_SECONDS: 0,                   // jika ALARM_LOOP true, 0 = tanpa henti; isi detik untuk membatasi
 
   // ---- LOG KE GOOGLE SHEETS (opsional) ----
-  WEBHOOK_URL: "https://script.google.com/macros/s/AKfycbxTQV4-hWhoKRFz5svrHAE2rGA5fJ_C7W3koFW9xkakt0mEGi-07hbcKm67ECWuEyltug/exec"                     // URL Web App Google Apps Script; kosong = tidak dikirim
+  WEBHOOK_URL: "https://script.google.com/macros/s/AKfycbzpcfc1nY9k47leLS4Mx1AtPHKcPvnThreUhxBs2TnEuS07KOBIWFVYND-V48iqYfcHsw/exec"                     // URL Web App Google Apps Script; kosong = tidak dikirim
 };
 
 // =====================================================
@@ -251,15 +250,13 @@ function checkReady(){
 }
 
 async function startExam(){
-  const name = $("studentName").value.trim(), kelas = $("studentClass").value.trim(), absen = $("studentAbsen").value.trim();
-  const mk = $("mapel").value;
-  if(!name || !kelas || !absen){ alert("Isi nama, kelas, dan no. absen terlebih dahulu."); return; }
+    const mk = $("mapel").value;
   if(!mk || !CONFIG.MAPEL[mk]){ alert("Pilih mata pelajaran terlebih dahulu."); return; }
   if(!volumeTested){ alert("Lakukan tes suara terlebih dahulu."); return; }
   const prev = load(keyFor(mk));
   if(prev && prev.finished){ alert("Mata pelajaran ini sudah selesai dikerjakan di perangkat ini."); return; }
   KEY = keyFor(mk); S = fresh(); lsSet(ACTIVE, mk);
-  S.name = name; S.kelas = kelas; S.absen = absen; S.mapel = mk; S.started = true; S.locked = false;
+  S.sid = Math.random().toString(36).slice(2, 8).toUpperCase(); S.mapel = mk; S.started = true; S.locked = false;
   const menit = CONFIG.MAPEL[mk].menit;
   S.endAt = menit ? Date.now() + menit * 60000 : 0;
   save();
@@ -280,7 +277,7 @@ function showExam(){
   $("start").style.display = "none";
   $("exam").style.display = "block";
   $("bar").style.display = "flex";
-  $("who").innerText = S.name + " (" + S.kelas + ", no. " + S.absen + ") · " + ((CONFIG.MAPEL[S.mapel] || {}).nama || "");
+  $("who").innerText = ((CONFIG.MAPEL[S.mapel] || {}).nama || "");
   $("vc").innerText = S.violations;
   runTimer();
 }
@@ -423,7 +420,7 @@ $("finishCode").addEventListener("keydown", e => { if(e.key === "Enter") confirm
 
 function report(type, detail){
   if(!CONFIG.WEBHOOK_URL) return;
-  const data = {type, detail, nama:S.name, kelas:S.kelas, absen:S.absen, mapel:(CONFIG.MAPEL[S.mapel]||{}).nama||"", pelanggaran:S.violations, waktu:new Date().toISOString()};
+  const data = {type, detail, sid:S.sid, mapel:(CONFIG.MAPEL[S.mapel]||{}).nama||"", pelanggaran:S.violations, waktu:new Date().toISOString()};
   try{ fetch(CONFIG.WEBHOOK_URL, {method:"POST", mode:"no-cors", keepalive:true, headers:{"Content-Type":"text/plain"}, body:JSON.stringify(data)}); }catch(e){}
 }
 
@@ -441,6 +438,9 @@ on("visibilitychange", () => {
 window.addEventListener("pagehide", () => violation("Halaman ditutup/ditinggalkan"));
 
 // 2. jendela kehilangan fokus (notifikasi, floating window, split screen)
+// Dialog bawaan Google Form (mis. peringatan email saat Kirim) membuat fokus hilang sebentar,
+// jadi pelanggaran baru dihitung jika fokus hilang lebih dari FOCUS_GRACE_SECONDS.
+// (Pindah tab/aplikasi di HP tetap terdeteksi langsung lewat visibilitychange di atas.)
 let focusLostAt = 0;
 setInterval(() => {
   if(!S.started || S.locked || S.finished || document.hidden){ focusLostAt = 0; return; }
@@ -451,9 +451,19 @@ setInterval(() => {
     violation("Jendela ujian kehilangan fokus lebih dari " + CONFIG.FOCUS_GRACE_SECONDS + " detik");
   }
 }, 1000);
+
 // 3. keluar fullscreen
+// Chrome bisa keluar dari layar penuh saat dialog Google Form muncul, jadi beri waktu untuk kembali.
+let fsTimer = null;
 on("fullscreenchange", () => {
-  if(CONFIG.REQUIRE_FULLSCREEN && !document.fullscreenElement) violation("Keluar dari layar penuh");
+  if(!CONFIG.REQUIRE_FULLSCREEN || !S.started || S.finished) return;
+  clearTimeout(fsTimer);
+  if(document.fullscreenElement){ $("timeBanner").style.display = "none"; return; }
+  banner("Layar penuh terlepas. Ketuk di sini untuk kembali, atau ujian terkunci dalam " + CONFIG.FULLSCREEN_GRACE_SECONDS + " detik.", "#dc2626");
+  $("timeBanner").onclick = () => enterFullscreen();
+  fsTimer = setTimeout(() => {
+    if(!document.fullscreenElement && $("finishScreen").style.display !== "flex") violation("Keluar dari layar penuh");
+  }, CONFIG.FULLSCREEN_GRACE_SECONDS * 1000);
 });
 
 // 4. copy / paste / cut / klik kanan / pilih teks / drag / cetak
@@ -518,13 +528,12 @@ on("visibilitychange", () => { if(!document.hidden && S.started && !S.locked) ke
   });
   if(pick && CONFIG.MAPEL[pick]){ sel.value = pick; sel.disabled = true; }   // link ?mapel=mtk mengunci pilihan
 })();
-FOCUS_GRACE_SECONDS: 8,
 $("vmax").innerText = CONFIG.MAX_VIOLATIONS;
 document.querySelectorAll(".maxText").forEach(n => n.innerText = CONFIG.MAX_VIOLATIONS);
 if(S.finished){ finishExam("Ujian sudah selesai.", true); }
 else if(S.started){
   loadForm(); $("start").style.display = "none"; $("bar").style.display = "flex";
-  $("who").innerText = S.name + " (" + S.kelas + ", no. " + S.absen + ") · " + ((CONFIG.MAPEL[S.mapel] || {}).nama || ""); $("vc").innerText = S.violations; runTimer();
+  $("who").innerText = ((CONFIG.MAPEL[S.mapel] || {}).nama || ""); $("vc").innerText = S.violations; runTimer();
   if(!S.locked){ S.reason = "Halaman dimuat ulang/ditutup saat ujian"; S.locked = true; S.violations++; S.log.push({t:new Date().toLocaleTimeString("id-ID"), r:S.reason}); save(); report("pelanggaran", S.reason); }
   showLock();
 }

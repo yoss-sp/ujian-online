@@ -14,6 +14,11 @@ header h2{margin:0}header p{margin:4px 0 0;font-size:13px}
 #bar{display:none;position:sticky;top:0;z-index:50;background:#111827;color:#fff;font-size:12px;height:var(--barh);padding:0 6px;align-items:center;gap:8px;justify-content:space-between;white-space:nowrap}
 #bar #who{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:left}
 body.exam-on header,body.exam-on footer{display:none}
+/* saat ujian: halaman luar dikunci (tidak bisa scroll) supaya address bar HP tidak naik-turun dan iframe tidak berubah ukuran; hanya isi form yang scroll */
+html.exam-on,body.exam-on{overflow:hidden;height:100%;overscroll-behavior:none}
+body{touch-action:manipulation}
+body.exam-on #bar{position:fixed;top:0;left:0;right:0}
+body.exam-on #exam{position:fixed;top:var(--barh);left:0;width:100%;height:calc(100% - var(--barh))}
 #bar b{color:#fca5a5}
 #start{padding:15px;max-width:600px;margin:auto}
 .card{background:#fff;border-radius:10px;padding:16px;margin:14px 0;text-align:left;border:1px solid #e5e7eb}
@@ -307,7 +312,7 @@ function loadForm(){
 }
 function showExam(){
   loadForm();
-  document.body.classList.add("exam-on");
+  document.body.classList.add("exam-on"); document.documentElement.classList.add("exam-on");
   $("start").style.display = "none";
   $("exam").style.display = "block";
   $("bar").style.display = "flex";
@@ -404,7 +409,7 @@ $("timeupPassword").addEventListener("keydown", e => { if(e.key === "Enter") reo
 
 function finishExam(msg, silent){
   stopAlarm(); clearInterval(timerId); lsDel(ACTIVE);
-  document.body.classList.remove("exam-on");
+  document.body.classList.remove("exam-on"); document.documentElement.classList.remove("exam-on");
   S.started = false; S.locked = false; S.finished = true; save();
   $("timeupScreen").style.display = "none";
   $("exam").style.display = "none"; $("lockScreen").style.display = "none"; $("finishScreen").style.display = "none"; $("bar").style.display = "none"; $("timeBanner").style.display = "none";
@@ -584,7 +589,7 @@ $("vmax").innerText = CONFIG.MAX_VIOLATIONS;
 document.querySelectorAll(".maxText").forEach(n => n.innerText = CONFIG.MAX_VIOLATIONS);
 if(S.finished){ finishExam("Ujian sudah selesai.", true); }
 else if(S.started){
-  loadForm(); document.body.classList.add("exam-on"); $("start").style.display = "none"; $("bar").style.display = "flex";
+  loadForm(); document.body.classList.add("exam-on"); document.documentElement.classList.add("exam-on"); $("start").style.display = "none"; $("bar").style.display = "flex";
   $("who").innerText = whoText(); $("vc").innerText = S.violations; runTimer();
   if(S.timeUp){ showTimeUp(); }
   else {

@@ -10,7 +10,10 @@ body{font-family:Arial,sans-serif;margin:0;background:#f3f4f6;text-align:center;
 input{-webkit-user-select:text;user-select:text}
 header{background:#1d4ed8;color:#fff;padding:14px}
 header h2{margin:0}header p{margin:4px 0 0;font-size:13px}
-#bar{display:none;position:sticky;top:0;z-index:50;background:#111827;color:#fff;font-size:14px;padding:8px 12px;justify-content:space-between}
+:root{--barh:24px}
+#bar{display:none;position:sticky;top:0;z-index:50;background:#111827;color:#fff;font-size:12px;height:var(--barh);padding:0 6px;align-items:center;gap:8px;justify-content:space-between;white-space:nowrap}
+#bar #who{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:left}
+body.exam-on header,body.exam-on footer{display:none}
 #bar b{color:#fca5a5}
 #start{padding:15px;max-width:600px;margin:auto}
 .card{background:#fff;border-radius:10px;padding:16px;margin:14px 0;text-align:left;border:1px solid #e5e7eb}
@@ -23,7 +26,7 @@ header h2{margin:0}header p{margin:4px 0 0;font-size:13px}
 button{background:#1d4ed8;color:#fff;border:0;padding:14px 25px;border-radius:8px;font-size:16px;margin:10px 0;cursor:pointer;width:100%}
 button:disabled{background:#9ca3af;cursor:not-allowed}
 .test-button{background:#ea580c}
-#exam{display:none;width:100%;height:calc(100vh - 40px);border:none;background:#fff}
+#exam{display:none;width:100%;height:calc(100vh - var(--barh));height:calc(100dvh - var(--barh));border:none;background:#fff;vertical-align:top}
 #end{display:none;padding:40px 20px}
 footer{color:#6b7280;font-size:12px;padding:12px}
 #lockScreen,#finishScreen,#timeupScreen{display:none;position:fixed;inset:0;z-index:99999;background:#111827;padding:20px;align-items:center;justify-content:center;overflow:auto}
@@ -33,8 +36,8 @@ footer{color:#6b7280;font-size:12px;padding:12px}
 .lock-card button{background:#16a34a}
 #reason{background:#fee2e2;color:#b91c1c;padding:10px;border-radius:8px;font-weight:bold;font-size:14px}
 #passwordError{color:#dc2626;font-size:14px;display:none}
-#bar button{width:auto;margin:0;padding:6px 12px;font-size:13px;background:#16a34a}
-#timeBanner{display:none;position:fixed;top:40px;left:0;right:0;z-index:60;padding:10px;font-weight:bold;font-size:15px;color:#fff;background:#d97706}
+#bar button{width:auto;margin:0;padding:2px 8px;font-size:12px;line-height:1.3;border-radius:5px;background:#16a34a}
+#timeBanner{display:none;position:fixed;top:var(--barh);left:0;right:0;z-index:60;padding:6px 8px;font-weight:bold;font-size:13px;color:#fff;background:#d97706}
 .btn-gray{background:#6b7280!important}
 #finishError{color:#dc2626;font-size:14px;display:none}
 @media(prefers-color-scheme:dark){body{background:#0f172a;color:#e5e7eb}.card{background:#1e293b;border-color:#334155}.vol{background:#431407;color:#fed7aa}.field{background:#0f172a;color:#e5e7eb;border-color:#475569}}
@@ -43,11 +46,16 @@ footer{color:#6b7280;font-size:12px;padding:12px}
 <body>
 
 <header><h2>UJIAN ONLINE</h2><p>Sistem Pengawasan Ujian</p></header>
-<div id="bar"><span id="who"></span><span id="timer"></span><span>Pelanggaran: <b id="vc">0</b>/<span id="vmax"></span></span><button onclick="openFinish()">✅ Selesai</button></div>
+<div id="bar"><span id="who"></span><span id="timer"></span><span title="Pelanggaran">⚠ <b id="vc">0</b>/<span id="vmax"></span></span><button onclick="openFinish()">✓ Selesai</button></div>
 <div id="timeBanner"></div>
 
 <div id="start">
   <h3>Selamat Mengerjakan</h3>
+
+  <div class="card">
+    <h3>🧑 Nama Siswa</h3>
+    <input class="field" type="text" id="nama" maxlength="50" placeholder="Tulis nama lengkap" autocomplete="off" oninput="checkReady()">
+  </div>
 
   <div class="card">
     <h3>📚 Pilih Mata Pelajaran</h3>
@@ -157,6 +165,10 @@ MAPEL: {
   mandarin:  {nama:"Bahasa Mandarin",                            menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
   informatika:{nama:"Informatika",                               menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"} 
 },
+  // Kode Sesi otomatis diisi ke pertanyaan "Kode Sesi" di Google Form (siswa tidak perlu mengetik).
+  // Isi dengan ID entry pertanyaan itu, mis. "entry.123456789" (lihat Form > titik tiga > Dapatkan link terisi otomatis).
+  // Jika tiap mapel punya form berbeda, isi "entry" di masing-masing mapel; kalau kosong dipakai FORM_SID_ENTRY ini.
+  FORM_SID_ENTRY: "",
   KEEP_SCREEN_ON: true,
 
   // ---- ALARM ----
@@ -188,6 +200,7 @@ let audioCtx = null, volumeTested = false, alarmStop = null, lastViolationAt = 0
 const $ = id => document.getElementById(id);
 
 function load(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+const whoText = () => (S.nama ? S.nama + " · " : "") + ((CONFIG.MAPEL[S.mapel] || {}).nama || "");
 function save(){ if(KEY) lsSet(KEY, JSON.stringify(S)); }
 
 // =====================================================
@@ -259,18 +272,20 @@ function testAlarm(){
 // =====================================================
 // MULAI UJIAN
 // =====================================================
+function cleanName(){ return ($("nama").value || "").replace(/\s+/g, " ").trim(); }
 function checkReady(){
-  $("startExamButton").disabled = !($("volumeConfirmed").checked && volumeTested && $("agree").checked);
+  $("startExamButton").disabled = !($("volumeConfirmed").checked && volumeTested && $("agree").checked && cleanName().length >= 3);
 }
 
 async function startExam(){
     const mk = $("mapel").value;
   if(!mk || !CONFIG.MAPEL[mk]){ alert("Pilih mata pelajaran terlebih dahulu."); return; }
+  if(cleanName().length < 3){ alert("Isi nama lengkap terlebih dahulu."); return; }
   if(!volumeTested){ alert("Lakukan tes suara terlebih dahulu."); return; }
   const prev = load(keyFor(mk));
   if(prev && prev.finished){ alert("Mata pelajaran ini sudah selesai dikerjakan di perangkat ini."); return; }
   KEY = keyFor(mk); S = fresh(); lsSet(ACTIVE, mk);
-  S.sid = Math.random().toString(36).slice(2, 8).toUpperCase(); S.mapel = mk; S.started = true; S.locked = false;
+  S.sid = Math.random().toString(36).slice(2, 8).toUpperCase(); S.mapel = mk; S.nama = cleanName(); S.started = true; S.locked = false;
   const menit = CONFIG.MAPEL[mk].menit;
   S.endAt = menit ? Date.now() + menit * 60000 : 0;
   save();
@@ -283,14 +298,20 @@ function loadForm(){
   const f = $("exam");
   if(f.getAttribute("src")) return;
   const m = CONFIG.MAPEL[S.mapel] || {};
-  f.src = m.form || CONFIG.DEFAULT_FORM;
+  let url = m.form || CONFIG.DEFAULT_FORM;
+  const entry = m.entry || CONFIG.FORM_SID_ENTRY;
+  if(entry && S.sid){
+    try{ const u = new URL(url); u.searchParams.set("usp", "pp_url"); u.searchParams.set(entry, S.sid); url = u.toString(); }catch(e){}
+  }
+  f.src = url;
 }
 function showExam(){
   loadForm();
+  document.body.classList.add("exam-on");
   $("start").style.display = "none";
   $("exam").style.display = "block";
   $("bar").style.display = "flex";
-  $("who").innerText = ((CONFIG.MAPEL[S.mapel] || {}).nama || "");
+  $("who").innerText = whoText();
   $("vc").innerText = S.violations;
   runTimer();
 }
@@ -383,6 +404,7 @@ $("timeupPassword").addEventListener("keydown", e => { if(e.key === "Enter") reo
 
 function finishExam(msg, silent){
   stopAlarm(); clearInterval(timerId); lsDel(ACTIVE);
+  document.body.classList.remove("exam-on");
   S.started = false; S.locked = false; S.finished = true; save();
   $("timeupScreen").style.display = "none";
   $("exam").style.display = "none"; $("lockScreen").style.display = "none"; $("finishScreen").style.display = "none"; $("bar").style.display = "none"; $("timeBanner").style.display = "none";
@@ -464,7 +486,7 @@ $("finishCode").addEventListener("keydown", e => { if(e.key === "Enter") confirm
 
 function report(type, detail){
   if(!CONFIG.WEBHOOK_URL) return;
-  const data = {type, detail, sid:S.sid, mapel:(CONFIG.MAPEL[S.mapel]||{}).nama||"", pelanggaran:S.violations, waktu:new Date().toISOString()};
+  const data = {type, detail, sid:S.sid, nama:S.nama || "", mapel:(CONFIG.MAPEL[S.mapel]||{}).nama||"", pelanggaran:S.violations, waktu:new Date().toISOString()};
   try{ fetch(CONFIG.WEBHOOK_URL, {method:"POST", mode:"no-cors", keepalive:true, headers:{"Content-Type":"text/plain"}, body:JSON.stringify(data)}); }catch(e){}
 }
 
@@ -562,8 +584,8 @@ $("vmax").innerText = CONFIG.MAX_VIOLATIONS;
 document.querySelectorAll(".maxText").forEach(n => n.innerText = CONFIG.MAX_VIOLATIONS);
 if(S.finished){ finishExam("Ujian sudah selesai.", true); }
 else if(S.started){
-  loadForm(); $("start").style.display = "none"; $("bar").style.display = "flex";
-  $("who").innerText = ((CONFIG.MAPEL[S.mapel] || {}).nama || ""); $("vc").innerText = S.violations; runTimer();
+  loadForm(); document.body.classList.add("exam-on"); $("start").style.display = "none"; $("bar").style.display = "flex";
+  $("who").innerText = whoText(); $("vc").innerText = S.violations; runTimer();
   if(S.timeUp){ showTimeUp(); }
   else {
     if(!S.locked){ S.reason = "Halaman dimuat ulang/ditutup saat ujian"; S.locked = true; S.violations++; S.log.push({t:new Date().toLocaleTimeString("id-ID"), r:S.reason}); save(); report("pelanggaran", S.reason); }

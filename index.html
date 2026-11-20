@@ -33,9 +33,15 @@ button:disabled{background:#9ca3af;cursor:not-allowed}
 .test-button{background:#ea580c}
 #exam{display:none;width:100%;height:calc(100vh - var(--barh));height:calc(100dvh - var(--barh));border:none;background:#fff;vertical-align:top}
 #end{display:none;padding:40px 20px}
+#end .end-card{max-width:420px;margin:0 auto;background:#ffffff;color:#111827;border:2px solid #16a34a;border-radius:14px;padding:24px 20px;box-shadow:0 6px 20px rgba(0,0,0,.15)}
+#end .end-card h2{margin:0 0 10px;color:#15803d}
+#end .end-card p{margin:0;font-size:16px;line-height:1.5;color:#111827}
 footer{color:#6b7280;font-size:12px;padding:12px}
 #lockScreen,#finishScreen,#timeupScreen{display:none;position:fixed;inset:0;z-index:99999;background:#111827;padding:20px;align-items:center;justify-content:center;overflow:auto}
 .lock-card{background:#fff;padding:25px;border-radius:15px;width:100%;max-width:400px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.lock-card{color:#111827}
+.lock-card p{color:#374151}
+.lock-card .field{background:#ffffff;color:#111827;border-color:#d1d5db}
 .lock-icon{font-size:55px}
 .lock-card h2{color:#dc2626;margin:6px 0}
 .lock-card button{background:#16a34a}
@@ -97,7 +103,7 @@ footer{color:#6b7280;font-size:12px;padding:12px}
 
 <iframe id="exam" title="Soal ujian" allow="autoplay">Memuat formulir...</iframe>
 
-<div id="end"><h2>✅ Ujian Selesai</h2><p id="endMsg"></p></div>
+<div id="end"><div class="end-card"><h2>✅ Ujian Selesai</h2><p id="endMsg"></p></div></div>
 
 <div id="finishScreen">
   <div class="lock-card">

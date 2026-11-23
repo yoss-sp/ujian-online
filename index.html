@@ -6,12 +6,23 @@
 <title>Ujian Online</title>
 <style>
 *{box-sizing:border-box}
-body{font-family:Arial,sans-serif;margin:0;background:#f3f4f6;text-align:center;color:#1f2937;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+:root{--barh:30px;--vvh:100%;--vvtop:0px;
+  --ink:#14241f;--muted:#5d6f69;--line:#d5ded9;--surface:#fff;--page:#f1f4f3;
+  --brand:#0d7f75;--brand-text:#0b5a53;--ok:#15803d;--bad:#b42318;
+  --warn-bg:#fff3d6;--warn-ink:#6b4204;--warn-line:#efcf85;--info-bg:#e3f3f0;--info-ink:#0b4741;--focus:#f59e0b}
+@media(prefers-color-scheme:dark){:root{--ink:#e6f0ec;--muted:#9db3ab;--line:#2a3d37;--surface:#14231f;--page:#0c1714;--brand:#0d8a7f;--brand-text:#6fdccf;--ok:#4ade80;--bad:#f87171;--warn-bg:#2a1f0a;--warn-ink:#fcd9a0;--warn-line:#6b4a16;--info-bg:#0f2d29;--info-ink:#b7ece5}}
+:root{--bad-bg:#fde8e6;--bad-ink:#8a1c12}
+@media(prefers-color-scheme:dark){:root{--bad-bg:#3a1512;--bad-ink:#fecaca}}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;margin:0;background:var(--page);text-align:center;color:var(--ink);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input{-webkit-user-select:text;user-select:text}
-header{background:#1d4ed8;color:#fff;padding:14px}
-header h2{margin:0}header p{margin:4px 0 0;font-size:13px}
-:root{--barh:24px;--vvh:100%;--vvtop:0px}
-#bar{display:none;position:sticky;top:0;z-index:50;background:#111827;color:#fff;font-size:12px;height:var(--barh);padding:0 6px;align-items:center;gap:8px;justify-content:space-between;white-space:nowrap}
+
+/* ===== HEADER ===== */
+header{background:var(--surface);border-bottom:1px solid var(--line);padding:14px 16px;text-align:left;height:60px;display:flex;align-items:baseline;gap:10px}
+header h1{margin:0;font-size:18px;font-weight:800;letter-spacing:-.01em}
+header span{font-size:13px;color:var(--muted)}
+
+/* ===== BAR UJIAN ===== */
+#bar{display:none;position:sticky;top:0;z-index:50;background:#0b3f3a;color:#fff;font-size:13px;height:var(--barh);padding:0 6px;align-items:center;gap:8px;justify-content:space-between;white-space:nowrap}
 #bar #who{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:left}
 body.exam-on header,body.exam-on footer{display:none}
 /* saat ujian: halaman luar dikunci (tidak bisa scroll) supaya address bar HP tidak naik-turun dan iframe tidak berubah ukuran; hanya isi form yang scroll */
@@ -19,101 +30,166 @@ html.exam-on,body.exam-on{overflow:hidden;height:100%;overscroll-behavior:none}
 body{touch-action:manipulation}
 body.exam-on #bar{position:fixed;top:var(--vvtop);left:0;right:0}
 body.exam-on #exam{position:fixed;top:calc(var(--vvtop) + var(--barh));left:0;width:100%;height:calc(var(--vvh) - var(--barh))}
-#bar b{color:#fca5a5}
-#start{padding:15px;max-width:600px;margin:auto}
-.card{background:#fff;border-radius:10px;padding:16px;margin:14px 0;text-align:left;border:1px solid #e5e7eb}
-.card h3{margin-top:0;text-align:center}
-.card ul{padding-left:20px;line-height:1.6;font-size:14px;margin:6px 0}
-.vol{background:#fff7ed;color:#9a3412;border-color:#fed7aa}
-.vol label,.rules label{display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:14px;line-height:1.5}
-.vol input[type=checkbox],.rules input[type=checkbox]{margin-top:3px;width:18px;height:18px}
-.field{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;margin:6px 0}
+#bar b{color:#fcd9a0}
+#bar button{width:auto;margin:0;padding:2px 8px;font-size:12px;line-height:1.3;border-radius:6px;background:#fff;color:#0b3f3a;font-weight:700}
+
+/* ===== HALAMAN AWAL (wizard) ===== */
+#start{max-width:560px;margin:0 auto;padding:18px 16px 0;text-align:left;display:flex;flex-direction:column;min-height:calc(100vh - 60px);min-height:calc(100dvh - 60px)}
+#start :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+.steps{list-style:none;display:flex;gap:6px;margin:0 0 22px;padding:0}
+.steps li{flex:1;font-size:12px;color:var(--muted);padding-top:8px;border-top:4px solid var(--line);border-radius:2px}
+.steps li.on{color:var(--ink);font-weight:700;border-color:var(--brand)}
+.steps li.done{border-color:var(--ok);color:var(--ink)}
+
+.pane{display:none}
+.pane.on{display:block}
+.pane h2{margin:0 0 4px;font-size:26px;line-height:1.2;font-weight:800;letter-spacing:-.01em}
+.pane .sub{margin:0 0 18px;font-size:15px;color:var(--muted);line-height:1.5}
+
+.field{width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;font-size:16px;margin:6px 0;min-height:52px;background:var(--surface);color:var(--ink)}
+#start .lb{display:block;font-size:14px;font-weight:700;margin:16px 0 4px}
+#start .lb:first-of-type{margin-top:0}
+#start .field{background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:12px;padding:13px 14px;margin:0;min-height:52px}
+#start .field:disabled{opacity:.7}
+#start .note{font-size:13px;color:var(--muted);margin:8px 0 0;line-height:1.5}
+
+.rules-list{list-style:none;margin:0;padding:0}
+.rules-list li{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px;line-height:1.5}
+.rules-list li::before{content:"✕";flex:none;width:22px;height:22px;border-radius:50%;background:var(--bad);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;margin-top:2px}
+.rules-list b{font-weight:700}
+.callout{background:var(--warn-bg);color:var(--warn-ink);border:1px solid var(--warn-line);border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.5;margin:16px 0 0}
+.info{background:var(--info-bg);color:var(--info-ink);border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.5;margin:16px 0 0}
+.check{display:flex;gap:12px;align-items:flex-start;margin-top:16px;padding:14px;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;font-size:15px;line-height:1.5;cursor:pointer}
+.check input{flex:none;width:24px;height:24px;margin:0}
+.check:has(input:checked){border-color:var(--brand);background:var(--info-bg)}
+
 button{background:#1d4ed8;color:#fff;border:0;padding:14px 25px;border-radius:8px;font-size:16px;margin:10px 0;cursor:pointer;width:100%}
 button:disabled{background:#9ca3af;cursor:not-allowed}
-.test-button{background:#ea580c}
+#start .test-button{background:var(--surface);color:var(--brand-text);border:2px solid var(--brand);border-radius:12px;margin:0;min-height:56px;font-weight:700}
+#testStatus{font-size:14px;color:var(--muted);margin:10px 0 0;line-height:1.5}
+#testStatus.ok{color:var(--ok);font-weight:700}
+
+.sum{margin:0;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:4px 14px}
+.sum div{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px}
+.sum div:last-child{border-bottom:0}
+.sum dt{color:var(--muted);flex:none}
+.sum dd{margin:0;font-weight:700;text-align:right}
+
+.nav{position:sticky;bottom:0;margin:auto -16px 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:var(--page);border-top:1px solid var(--line)}
+.nav .hint{margin:0 0 8px;font-size:13px;color:var(--muted);text-align:center;line-height:1.4;min-height:18px}
+.nav .row{display:flex;gap:10px}
+.nav button{margin:0;min-height:54px;font-weight:700;border-radius:12px}
+#backBtn{flex:0 0 32%;background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+#nextBtn,#startExamButton{flex:1;background:var(--brand)}
+#nextBtn:disabled,#startExamButton:disabled{background:#9ca3af;color:#fff}
+
+/* ===== UJIAN, KUNCI, SELESAI ===== */
 #exam{display:none;width:100%;height:calc(100vh - var(--barh));height:calc(100dvh - var(--barh));border:none;background:#fff;vertical-align:top}
-#end{display:none;padding:40px 20px}
-#end .end-card{max-width:420px;margin:0 auto;background:#ffffff;color:#111827;border:2px solid #16a34a;border-radius:14px;padding:24px 20px;box-shadow:0 6px 20px rgba(0,0,0,.15)}
-#end .end-card h2{margin:0 0 10px;color:#15803d}
-#end .end-card p{margin:0;font-size:16px;line-height:1.5;color:#111827}
-footer{color:#6b7280;font-size:12px;padding:12px}
-#lockScreen,#finishScreen,#timeupScreen{display:none;position:fixed;inset:0;z-index:99999;background:#111827;padding:20px;align-items:center;justify-content:center;overflow:auto}
-.lock-card{background:#fff;padding:25px;border-radius:15px;width:100%;max-width:400px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
-.lock-card{color:#111827}
-.lock-card p{color:#374151}
-.lock-card .field{background:#ffffff;color:#111827;border-color:#d1d5db}
-.lock-icon{font-size:55px}
-.lock-card h2{color:#dc2626;margin:6px 0}
-.lock-card button{background:#16a34a}
-#reason{background:#fee2e2;color:#b91c1c;padding:10px;border-radius:8px;font-weight:bold;font-size:14px}
-#passwordError{color:#dc2626;font-size:14px;display:none}
-#bar button{width:auto;margin:0;padding:2px 8px;font-size:12px;line-height:1.3;border-radius:5px;background:#16a34a}
-#timeBanner{display:none;position:fixed;top:calc(var(--vvtop) + var(--barh));left:0;right:0;z-index:60;padding:6px 8px;font-weight:bold;font-size:13px;color:#fff;background:#d97706}
-.btn-gray{background:#6b7280!important}
-#finishError{color:#dc2626;font-size:14px;display:none}
-@media(prefers-color-scheme:dark){body{background:#0f172a;color:#e5e7eb}.card{background:#1e293b;border-color:#334155}.vol{background:#431407;color:#fed7aa}.field{background:#0f172a;color:#e5e7eb;border-color:#475569}}
+#end{display:none;padding:24px 16px}
+#end .end-card{margin:24px auto 0}
+footer{color:var(--muted);font-size:12px;padding:12px}
+#lockScreen,#finishScreen,#timeupScreen{display:none;position:fixed;inset:0;z-index:99999;background:var(--page);padding:20px;align-items:center;justify-content:center;overflow:auto}
+#lockScreen{background:var(--bad-bg)}
+#timeupScreen{background:var(--warn-bg)}
+.lock-card{background:var(--surface);color:var(--ink);border:1.5px solid var(--line);padding:24px 20px;border-radius:16px;width:100%;max-width:420px;text-align:left;box-shadow:0 8px 24px rgba(15,23,42,.12)}
+.lock-icon{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;font-size:28px;background:var(--info-bg)}
+.lock-icon.bad{background:var(--bad-bg)}
+.lock-icon.warn{background:var(--warn-bg)}
+.lock-card h2{margin:14px 0 6px;font-size:24px;line-height:1.2;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+.lock-card p{margin:10px 0;font-size:15px;line-height:1.5;color:var(--muted)}
+.lock-card .field{margin:12px 0 0}
+.lock-card button{background:var(--brand);min-height:52px;border-radius:12px;font-weight:700;margin:12px 0 0}
+.btn-gray{background:transparent!important;color:var(--ink)!important;border:1.5px solid var(--line)!important}
+.reason{background:var(--bad-bg);color:var(--bad-ink);padding:12px 14px;border-radius:12px;font-weight:700;font-size:14px;line-height:1.5;margin:10px 0}
+#timeupScreen .reason{background:var(--warn-bg);color:var(--warn-ink);border:1px solid var(--warn-line)}
+#passwordError,#finishError,#timeupError{color:var(--bad);font-size:14px;font-weight:600;display:none;margin:8px 0 0}
+#timeBanner{display:none;position:fixed;top:calc(var(--vvtop) + var(--barh));left:0;right:0;z-index:60;padding:8px 10px;text-align:center;line-height:1.35;font-weight:700;font-size:13px;color:#fff;background:#d97706}
 </style>
 </head>
 <body>
 
-<header><h2>UJIAN ONLINE</h2><p>Sistem Pengawasan Ujian</p></header>
+<header><h1>Ujian Online</h1><span>Sistem Pengawasan Ujian</span></header>
 <div id="bar"><span id="who"></span><span id="timer"></span><span title="Pelanggaran">⚠ <b id="vc">0</b>/<span id="vmax"></span></span><button onclick="openFinish()">✓ Selesai</button></div>
 <div id="timeBanner"></div>
 
 <div id="start">
-  <h3>Selamat Mengerjakan</h3>
 
-  <div class="card">
-    <h3>🧑 Nama & Kelas</h3>
-    <input class="field" type="text" id="nama" maxlength="50" placeholder="Tulis nama lengkap" autocomplete="off" oninput="checkReady()">
+  <ol class="steps" aria-label="Langkah">
+    <li class="on">1. Data</li>
+    <li>2. Aturan</li>
+    <li>3. Suara</li>
+    <li>4. Mulai</li>
+  </ol>
+
+  <section class="pane on" id="p1">
+    <h2>Data dan mata pelajaran</h2>
+    <p class="sub">Tulis nama sesuai data sekolah, lalu pilih kelas dan mata pelajaran.</p>
+    <label class="lb" for="nama">Nama lengkap</label>
+    <input class="field" type="text" id="nama" maxlength="50" placeholder="Contoh: Maria Putri Lestari" autocomplete="off" autocapitalize="words" enterkeyhint="done" oninput="checkReady()">
+    <label class="lb" for="kelas">Kelas</label>
     <select class="field" id="kelas" onchange="fillMapel()"><option value="">-- Pilih kelas --</option></select>
-  </div>
+    <label class="lb" for="mapel">Mata pelajaran</label>
+    <select class="field" id="mapel" onchange="checkReady()"><option value="">-- Pilih kelas terlebih dahulu --</option></select>
+    <p class="note">Waktu ujian berjalan sejak kamu menekan Mulai ujian dan tidak bisa dijeda.</p>
+  </section>
 
-  <div class="card">
-    <h3>📚 Pilih Mata Pelajaran</h3>
-    <select class="field" id="mapel"><option value="">-- Pilih kelas terlebih dahulu --</option></select>
-  </div>
-
-  <div class="card rules">
-    <h3>📋 Aturan Ujian</h3>
-    <ul>
-      <li>Dilarang keluar dari halaman ujian, pindah tab/aplikasi, atau membuka notifikasi/jendela mengambang.</li>
-      <li>Dilarang copy, paste, cut, screenshot, cetak, dan klik kanan / tekan lama.</li>
-      <li>Dilarang me-refresh, menutup, atau menekan tombol kembali.</li>
-      <li>Dilarang mengubah ukuran jendela (split screen) atau memutus koneksi internet.</li>
-      <li>Setiap pelanggaran: alarm berbunyi, ujian terkunci, dan dicatat. Pelanggaran ke-<span class="maxText"></span> menghentikan ujian.</li>
-      <li>Setelah selesai mengisi dan mengirim form, tekan tombol <b>Selesai</b>, lalu serahkan HP ke pengawas untuk dikonfirmasi dengan kode selesai.</li>
+  <section class="pane" id="p2">
+    <h2>Aturan ujian</h2>
+    <p class="sub">Baca semua aturan sebelum lanjut.</p>
+    <ul class="rules-list">
+      <li><span><b>Jangan keluar dari halaman ujian.</b> Tidak boleh pindah tab atau aplikasi, membuka notifikasi, jendela mengambang, atau split screen.</span></li>
+      <li><span><b>Jangan salin atau tangkap layar.</b> Copy, paste, cut, screenshot, cetak, dan klik kanan / tekan lama dilarang.</span></li>
+      <li><span><b>Jangan refresh atau menutup halaman.</b> Tombol kembali juga tidak boleh ditekan.</span></li>
+      <li><span><b>Jangan memutus internet.</b> Koneksi harus tetap tersambung selama ujian.</span></li>
     </ul>
-    <label><input type="checkbox" id="agree" onchange="checkReady()"> Saya sudah membaca dan menyetujui aturan di atas.</label>
-  </div>
+    <div class="callout">Setiap pelanggaran membunyikan alarm, mengunci ujian, dan dicatat. Pelanggaran ke-<span class="maxText"></span> menghentikan ujian.</div>
+    <div class="info"><b>Cara menyelesaikan:</b> kirim jawaban di form, tekan <b>Selesai</b>, lalu serahkan HP ke pengawas untuk dikonfirmasi dengan kode selesai.</div>
+    <label class="check"><input type="checkbox" id="agree" onchange="checkReady()"> <span>Saya sudah membaca dan menyetujui aturan di atas.</span></label>
+  </section>
 
-  <div class="card vol">
-    <h3>🔊 PENGECEKAN VOLUME HP</h3>
-    <ul>
-      <li>Naikkan volume media HP hingga maksimal.</li>
-      <li>Pastikan HP tidak dalam mode senyap.</li>
-      <li>Tekan tombol tes suara di bawah ini.</li>
-    </ul>
-    <button type="button" class="test-button" onclick="testAlarm()">🔊 TEST SUARA ALARM</button>
-    <p id="testStatus">Belum melakukan tes suara.</p>
-    <label><input type="checkbox" id="volumeConfirmed" onchange="checkReady()"> Saya sudah menaikkan volume HP dan mendengar suara tes alarm.</label>
-  </div>
+  <section class="pane" id="p3">
+    <h2>Cek suara alarm</h2>
+    <p class="sub">Naikkan volume media HP ke maksimal dan pastikan HP tidak dalam mode senyap. Alarm akan berbunyi jika terjadi pelanggaran.</p>
+    <button type="button" class="test-button" onclick="testAlarm()">🔊 Putar suara tes</button>
+    <p id="testStatus" aria-live="polite">Belum melakukan tes suara.</p>
+    <label class="check"><input type="checkbox" id="volumeConfirmed" onchange="checkReady()"> <span>Saya sudah menaikkan volume HP dan mendengar suara tes alarm.</span></label>
+  </section>
 
-  <button id="startExamButton" onclick="startExam()" disabled>MULAI UJIAN</button>
+  <section class="pane" id="p4">
+    <h2>Siap mulai?</h2>
+    <p class="sub">Periksa data kamu. Kalau ada yang salah, tekan Kembali.</p>
+    <dl class="sum">
+      <div><dt>Nama</dt><dd id="sumNama"></dd></div>
+      <div><dt>Kelas</dt><dd id="sumKelas"></dd></div>
+      <div><dt>Mata pelajaran</dt><dd id="sumMapel"></dd></div>
+      <div><dt>Waktu</dt><dd id="sumWaktu"></dd></div>
+    </dl>
+    <div class="callout">Waktu langsung berjalan setelah kamu menekan Mulai ujian. Pastikan baterai cukup dan koneksi stabil.</div>
+  </section>
+
+  <div class="nav">
+    <p class="hint" id="hint"></p>
+    <div class="row">
+      <button type="button" id="backBtn" onclick="wizBack()" style="display:none">Kembali</button>
+      <button type="button" id="nextBtn" onclick="wizNext()" disabled>Lanjut</button>
+      <button id="startExamButton" onclick="startExam()" disabled style="display:none">Mulai ujian</button>
+    </div>
+  </div>
 </div>
 
 <iframe id="exam" title="Soal ujian" allow="autoplay">Memuat formulir...</iframe>
 
-<div id="end"><div class="end-card"><h2>✅ Ujian Selesai</h2><p id="endMsg"></p></div></div>
+<div id="end"><div class="end-card lock-card"><div class="lock-icon">✅</div><h2>Ujian selesai</h2><p id="endMsg"></p></div></div>
 
 <div id="finishScreen">
   <div class="lock-card">
     <div class="lock-icon">📱</div>
-    <h2 style="color:#16a34a">SELESAI UJIAN?</h2>
+    <h2>Selesai ujian?</h2>
     <p>Pastikan jawaban sudah dikirim (muncul tulisan "Jawaban Anda telah direkam").</p>
     <p><b>Serahkan HP ke pengawas.</b> Pengawas akan memasukkan kode selesai.</p>
     <input class="field" type="password" id="finishCode" placeholder="Kode selesai (diisi pengawas)" autocomplete="off">
-    <button onclick="confirmFinish()">KONFIRMASI SELESAI</button>
+    <button onclick="confirmFinish()">Konfirmasi selesai</button>
     <p id="finishError">Kode salah!</p>
     <button class="btn-gray" onclick="closeFinish()">Kembali mengerjakan</button>
   </div>
@@ -121,25 +197,25 @@ footer{color:#6b7280;font-size:12px;padding:12px}
 
 <div id="lockScreen">
   <div class="lock-card">
-    <div class="lock-icon">🔒</div>
-    <h2 id="lockTitle">UJIAN TERKUNCI</h2>
-    <div id="reason"></div>
+    <div class="lock-icon bad">🔒</div>
+    <h2 id="lockTitle">Ujian terkunci</h2>
+    <div id="reason" class="reason"></div>
     <p id="lockInfo">Masukkan password dari pengawas untuk melanjutkan.</p>
     <input class="field" type="password" id="unlockPassword" placeholder="Password pengawas" autocomplete="off">
-    <button onclick="unlockExam()">BUKA KUNCI UJIAN</button>
+    <button onclick="unlockExam()">Buka kunci ujian</button>
     <p id="passwordError">Password salah! Silakan coba kembali.</p>
   </div>
 </div>
 
 <div id="timeupScreen">
   <div class="lock-card">
-    <div class="lock-icon">⏰</div>
-    <h2>WAKTU UJIAN HABIS</h2>
-    <div id="reason">Waktu mengerjakan dan masa tambahan sudah berakhir.</div>
+    <div class="lock-icon warn">⏰</div>
+    <h2>Waktu ujian habis</h2>
+    <div class="reason">Waktu mengerjakan dan masa tambahan sudah berakhir.</div>
     <p><b>Lapor ke pengawas.</b> Pengawas dapat menambah waktu atau menyelesaikan ujian dengan memasukkan password.</p>
     <input class="field" type="password" id="timeupPassword" placeholder="Password pengawas" autocomplete="off">
-    <button onclick="reopenAfterTimeUp()">LANJUTKAN / SELESAIKAN</button>
-    <p id="timeupError" style="color:#dc2626;font-size:14px;display:none">Password salah!</p>
+    <button onclick="reopenAfterTimeUp()">Lanjutkan atau selesaikan</button>
+    <p id="timeupError">Password salah!</p>
   </div>
 </div>
 
@@ -531,7 +607,7 @@ function showLock(){
   $("lockScreen").style.display = "flex";
   $("vc").innerText = S.violations;
   $("reason").innerText = "Pelanggaran ke-" + S.violations + ": " + S.reason;
-  $("lockTitle").innerText = final ? "UJIAN DIHENTIKAN" : "UJIAN TERKUNCI";
+  $("lockTitle").innerText = final ? "Ujian dihentikan" : "Ujian terkunci";
   $("lockInfo").innerText = final
     ? "Batas pelanggaran tercapai. Panggil pengawas — hanya pengawas yang dapat membuka."
     : "Masukkan password dari pengawas untuk melanjutkan.";
@@ -702,6 +778,57 @@ else if(S.started){
     showLock();
   }
 }
+</script>
+
+<script>
+// Wizard halaman awal: satu langkah per layar (tidak mengubah logika ujian)
+(function(){
+  const el = id => document.getElementById(id);
+  const N = 4; let cur = 1;
+  const nameOk = () => el("nama").value.replace(/\s+/g, " ").trim().length >= 3;
+  const valid = [
+    () => nameOk() && !!el("kelas").value && !!el("mapel").value,
+    () => el("agree").checked,
+    () => volumeTested && el("volumeConfirmed").checked,
+    () => true
+  ];
+  const hints = [
+    "Isi nama (minimal 3 huruf), kelas, dan mata pelajaran.",
+    "Centang persetujuan aturan untuk lanjut.",
+    "Putar suara tes, lalu centang konfirmasi.",
+    "Waktu ujian langsung berjalan setelah tombol ditekan."
+  ];
+  const fmt = m => m && m % 60 === 0 ? (m / 60) + " jam" : m + " menit";
+
+  function render(){
+    document.querySelectorAll(".pane").forEach((p, i) => p.classList.toggle("on", i + 1 === cur));
+    document.querySelectorAll(".steps li").forEach((li, i) => {
+      li.classList.toggle("on", i + 1 === cur);
+      li.classList.toggle("done", i + 1 < cur);
+    });
+    const last = cur === N, ok = valid[cur - 1]();
+    el("backBtn").style.display = cur > 1 ? "" : "none";
+    el("nextBtn").style.display = last ? "none" : "";
+    el("startExamButton").style.display = last ? "" : "none";
+    el("nextBtn").disabled = !ok;
+    el("hint").textContent = last ? hints[3] : (ok ? "" : hints[cur - 1]);
+    el("testStatus").classList.toggle("ok", volumeTested);
+    if(last){
+      const mk = el("mapel").value, m = CONFIG.MAPEL[mk] || {};
+      el("sumNama").textContent = cleanName();
+      el("sumKelas").textContent = el("kelas").value ? "Kelas " + el("kelas").value : "-";
+      el("sumMapel").textContent = m.nama || "-";
+      el("sumWaktu").textContent = m.menit ? fmt(m.menit) : "-";
+    }
+  }
+  function go(n){ cur = Math.max(1, Math.min(N, n)); render(); window.scrollTo(0, 0); }
+  window.wizNext = () => { if(valid[cur - 1]()) go(cur + 1); };
+  window.wizBack = () => go(cur - 1);
+
+  const orig = window.checkReady;
+  window.checkReady = function(){ orig(); render(); };
+  render();
+})();
 </script>
 </body>
 </html>

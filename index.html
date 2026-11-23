@@ -64,13 +64,14 @@ footer{color:#6b7280;font-size:12px;padding:12px}
   <h3>Selamat Mengerjakan</h3>
 
   <div class="card">
-    <h3>🧑 Nama Siswa</h3>
+    <h3>🧑 Nama & Kelas</h3>
     <input class="field" type="text" id="nama" maxlength="50" placeholder="Tulis nama lengkap" autocomplete="off" oninput="checkReady()">
+    <select class="field" id="kelas" onchange="fillMapel()"><option value="">-- Pilih kelas --</option></select>
   </div>
 
   <div class="card">
     <h3>📚 Pilih Mata Pelajaran</h3>
-    <select class="field" id="mapel"><option value="">-- Pilih mata pelajaran --</option></select>
+    <select class="field" id="mapel"><option value="">-- Pilih kelas terlebih dahulu --</option></select>
   </div>
 
   <div class="card rules">
@@ -148,6 +149,8 @@ footer{color:#6b7280;font-size:12px;padding:12px}
 // =====================================================
 // PENGATURAN  (ubah di sini)
 // =====================================================
+// link contoh (sementara). Ganti di FORMS dengan link form tiap kelas/mapel.
+const F_CONTOH = "https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header";
 const CONFIG = {
   ADMIN_PASSWORD: "UJIAN2026",        // password buka kunci biasa
   FINAL_PASSWORD: "PENGAWAS2026",     // password jika pelanggaran sudah mencapai batas
@@ -159,23 +162,74 @@ const CONFIG = {
   GRACE_SECONDS: 60,                  // waktu tambahan setelah timer habis, khusus untuk menekan KIRIM
   FOCUS_GRACE_SECONDS: 15,            // toleransi fokus hilang (dialog Google Form saat Kirim)
   MAX_VIOLATIONS: 3,                  // batas pelanggaran
-  // Daftar mata pelajaran: menit = durasi timer, form = link Google Form mapel itu.
-  // form dikosongkan -> memakai DEFAULT_FORM. Kunci (mtk, ipa, ...) dipakai untuk link ?mapel=mtk
+  // DEFAULT_FORM dipakai hanya jika FORMS tidak diisi. Link pintas: ?kelas=7&mapel=mtk mengunci pilihan kelas/mapel.
   DEFAULT_FORM: "https://docs.google.com/forms/d/e/1FAIpQLScNVGLwyNF-BsAChJkrHLZBaL8dLOBmL4Z1mkWfu3PkxeMO2A/viewform?embedded=true",
-MAPEL: { 
-  pancasila: {nama:"Pendidikan Pancasila",                       menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
-  ind:       {nama:"Bahasa Indonesia",                           menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
-  mtk:       {nama:"Matematika",                                 menit:120, form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
-  ipa:       {nama:"Ilmu Pengetahuan Alam",                      menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"},
-  ips:       {nama:"Ilmu Pengetahuan Sosial",                    menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"},
-  pak:       {nama:"Pendidikan Agama Kristen",                   menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"},
-  sbp:       {nama:"Seni Budaya dan Prakarya",                   menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
-  pjok:      {nama:"Pend. Jasmani, Olahraga dan Kesehatan",      menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
-  sunda:     {nama:"Bahasa dan Sastra Sunda",                    menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
-  ing:       {nama:"Bahasa Inggris",                             menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
-  mandarin:  {nama:"Bahasa Mandarin",                            menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"}, 
-  informatika:{nama:"Informatika",                               menit:90,  form:"https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aSBAxes4WNFDPpD52JJ7y8zR-77LgA/viewform?usp=header"} 
-},
+  // Daftar kelas yang ikut ujian.
+  KELAS: ["7", "8", "9"],
+
+  // Daftar mapel: nama + durasi (menit). Link Google Form-nya diatur per kelas di FORMS di bawah.
+  MAPEL: {
+    pancasila: {nama:"Pendidikan Pancasila", menit:90},
+    ind: {nama:"Bahasa Indonesia", menit:90},
+    mtk: {nama:"Matematika", menit:120},
+    ipa: {nama:"Ilmu Pengetahuan Alam", menit:90},
+    ips: {nama:"Ilmu Pengetahuan Sosial", menit:90},
+    pak: {nama:"Pendidikan Agama Kristen", menit:90},
+    sbp: {nama:"Seni Budaya dan Prakarya", menit:90},
+    pjok: {nama:"Pend. Jasmani, Olahraga dan Kesehatan", menit:90},
+    sunda: {nama:"Bahasa dan Sastra Sunda", menit:90},
+    ing: {nama:"Bahasa Inggris", menit:90},
+    mandarin: {nama:"Bahasa Mandarin", menit:90},
+    informatika: {nama:"Informatika", menit:90}
+  },
+
+  // Link Google Form: per kelas, per mapel (kunci mapel sama dengan di MAPEL).
+  // Ganti F_CONTOH dengan link form yang sebenarnya. Mapel yang kosong ("") atau tidak ditulis
+  // di suatu kelas tidak akan muncul di pilihan kelas itu.
+  FORMS: {
+    "7": {
+      pancasila: F_CONTOH,
+      ind: F_CONTOH,
+      mtk: F_CONTOH,
+      ipa: F_CONTOH,
+      ips: F_CONTOH,
+      pak: F_CONTOH,
+      sbp: F_CONTOH,
+      pjok: F_CONTOH,
+      sunda: F_CONTOH,
+      ing: F_CONTOH,
+      mandarin: F_CONTOH,
+      informatika: F_CONTOH
+    },
+    "8": {
+      pancasila: F_CONTOH,
+      ind: F_CONTOH,
+      mtk: F_CONTOH,
+      ipa: F_CONTOH,
+      ips: F_CONTOH,
+      pak: F_CONTOH,
+      sbp: F_CONTOH,
+      pjok: F_CONTOH,
+      sunda: F_CONTOH,
+      ing: F_CONTOH,
+      mandarin: F_CONTOH,
+      informatika: F_CONTOH
+    },
+    "9": {
+      pancasila: F_CONTOH,
+      ind: F_CONTOH,
+      mtk: F_CONTOH,
+      ipa: F_CONTOH,
+      ips: F_CONTOH,
+      pak: F_CONTOH,
+      sbp: F_CONTOH,
+      pjok: F_CONTOH,
+      sunda: F_CONTOH,
+      ing: F_CONTOH,
+      mandarin: F_CONTOH,
+      informatika: F_CONTOH
+    }
+  },
   // Kode Sesi otomatis diisi ke pertanyaan "Kode Sesi" di Google Form (siswa tidak perlu mengetik).
   // Isi dengan ID entry pertanyaan itu, mis. "entry.123456789" (lihat Form > titik tiga > Dapatkan link terisi otomatis).
   // Jika tiap mapel punya form berbeda, isi "entry" di masing-masing mapel; kalau kosong dipakai FORM_SID_ENTRY ini.
@@ -212,7 +266,7 @@ let audioCtx = null, volumeTested = false, alarmStop = null, lastViolationAt = 0
 const $ = id => document.getElementById(id);
 
 function load(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
-const whoText = () => (S.nama ? S.nama + " · " : "") + ((CONFIG.MAPEL[S.mapel] || {}).nama || "");
+const whoText = () => (S.nama ? S.nama + (S.kelas ? " (" + S.kelas + ")" : "") + " · " : "") + ((CONFIG.MAPEL[S.mapel] || {}).nama || "");
 function save(){ if(KEY) lsSet(KEY, JSON.stringify(S)); }
 
 // =====================================================
@@ -286,18 +340,20 @@ function testAlarm(){
 // =====================================================
 function cleanName(){ return ($("nama").value || "").replace(/\s+/g, " ").trim(); }
 function checkReady(){
-  $("startExamButton").disabled = !($("volumeConfirmed").checked && volumeTested && $("agree").checked && cleanName().length >= 3);
+  $("startExamButton").disabled = !($("volumeConfirmed").checked && volumeTested && $("agree").checked && cleanName().length >= 3 && !!$("kelas").value && !!$("mapel").value);
 }
 
 async function startExam(){
     const mk = $("mapel").value;
-  if(!mk || !CONFIG.MAPEL[mk]){ alert("Pilih mata pelajaran terlebih dahulu."); return; }
+  const kl = $("kelas").value;
+  if(!kl){ alert("Pilih kelas terlebih dahulu."); return; }
+  if(!mk || !CONFIG.MAPEL[mk] || !formUrl(kl, mk)){ alert("Pilih mata pelajaran terlebih dahulu."); return; }
   if(cleanName().length < 3){ alert("Isi nama lengkap terlebih dahulu."); return; }
   if(!volumeTested){ alert("Lakukan tes suara terlebih dahulu."); return; }
   const prev = load(keyFor(mk));
   if(prev && prev.finished){ alert("Mata pelajaran ini sudah selesai dikerjakan di perangkat ini."); return; }
   KEY = keyFor(mk); S = fresh(); lsSet(ACTIVE, mk);
-  S.sid = Math.random().toString(36).slice(2, 8).toUpperCase(); S.mapel = mk; S.nama = cleanName(); S.started = true; S.locked = false;
+  S.sid = Math.random().toString(36).slice(2, 8).toUpperCase(); S.mapel = mk; S.kelas = kl; S.nama = cleanName(); S.started = true; S.locked = false;
   const menit = CONFIG.MAPEL[mk].menit;
   S.endAt = menit ? Date.now() + menit * 60000 : 0;
   save();
@@ -306,11 +362,37 @@ async function startExam(){
   report("mulai", "Ujian dimulai");
 }
 
+// link form untuk kelas + mapel tertentu ("" = tidak tersedia). Jika FORMS tidak dipakai, pakai m.form / DEFAULT_FORM.
+function formUrl(kelas, mk){
+  const f = CONFIG.FORMS && CONFIG.FORMS[kelas];
+  if(f) return f[mk] || "";
+  return (CONFIG.MAPEL[mk] || {}).form || CONFIG.DEFAULT_FORM;
+}
+let lockedMapel = null;
+function fillMapel(){
+  const sel = $("mapel"), kelas = $("kelas").value, keep = sel.value;
+  const fmt = m => m && m % 60 === 0 ? (m / 60) + " jam" : m + " menit";
+  sel.innerHTML = "";
+  const first = document.createElement("option");
+  first.value = ""; first.textContent = kelas ? "-- Pilih mata pelajaran --" : "-- Pilih kelas terlebih dahulu --";
+  sel.appendChild(first);
+  if(kelas) Object.keys(CONFIG.MAPEL).forEach(k => {
+    if(!formUrl(kelas, k)) return;
+    const o = document.createElement("option");
+    o.value = k; o.textContent = CONFIG.MAPEL[k].nama + " (" + fmt(CONFIG.MAPEL[k].menit) + ")";
+    sel.appendChild(o);
+  });
+  const has = v => v && [...sel.options].some(o => o.value === v);
+  if(has(lockedMapel)){ sel.value = lockedMapel; sel.disabled = true; }
+  else { sel.disabled = false; if(has(keep)) sel.value = keep; }
+  checkReady();
+}
+
 function loadForm(){
   const f = $("exam");
   if(f.getAttribute("src")) return;
   const m = CONFIG.MAPEL[S.mapel] || {};
-  let url = m.form || CONFIG.DEFAULT_FORM;
+  let url = formUrl(S.kelas, S.mapel) || CONFIG.DEFAULT_FORM;
   const entry = m.entry || CONFIG.FORM_SID_ENTRY;
   if(entry && S.sid){
     try{ const u = new URL(url); u.searchParams.set("usp", "pp_url"); u.searchParams.set(entry, S.sid); url = u.toString(); }catch(e){}
@@ -498,7 +580,7 @@ $("finishCode").addEventListener("keydown", e => { if(e.key === "Enter") confirm
 
 function report(type, detail){
   if(!CONFIG.WEBHOOK_URL) return;
-  const data = {type, detail, sid:S.sid, nama:S.nama || "", mapel:(CONFIG.MAPEL[S.mapel]||{}).nama||"", pelanggaran:S.violations, waktu:new Date().toISOString()};
+  const data = {type, detail, sid:S.sid, nama:S.nama || "", mapel:(CONFIG.MAPEL[S.mapel]||{}).nama||"", kelas:S.kelas || "", pelanggaran:S.violations, waktu:new Date().toISOString()};
   try{ fetch(CONFIG.WEBHOOK_URL, {method:"POST", mode:"no-cors", keepalive:true, headers:{"Content-Type":"text/plain"}, body:JSON.stringify(data)}); }catch(e){}
 }
 
@@ -597,14 +679,16 @@ on("visibilitychange", () => { if(!document.hidden && S.started && !S.locked) ke
 // PEMULIHAN SETELAH REFRESH
 // =====================================================
 (function(){
-  const sel = $("mapel"), pick = new URLSearchParams(location.search).get("mapel");
-  const fmt = m => m && m % 60 === 0 ? (m / 60) + " jam" : m + " menit";
-  Object.keys(CONFIG.MAPEL).forEach(k => {
+  const qs = new URLSearchParams(location.search), pickK = qs.get("kelas"), pickM = qs.get("mapel");
+  const kel = $("kelas");
+  (CONFIG.KELAS || []).forEach(k => {
     const o = document.createElement("option");
-    o.value = k; o.textContent = CONFIG.MAPEL[k].nama + " (" + fmt(CONFIG.MAPEL[k].menit) + ")";
-    sel.appendChild(o);
+    o.value = k; o.textContent = "Kelas " + k;
+    kel.appendChild(o);
   });
-  if(pick && CONFIG.MAPEL[pick]){ sel.value = pick; sel.disabled = true; }   // link ?mapel=mtk mengunci pilihan
+  if(pickK && (CONFIG.KELAS || []).includes(pickK)){ kel.value = pickK; kel.disabled = true; }   // ?kelas=7 mengunci kelas
+  if(pickM && CONFIG.MAPEL[pickM]) lockedMapel = pickM;                                          // ?mapel=mtk mengunci mapel
+  fillMapel();
 })();
 $("vmax").innerText = CONFIG.MAX_VIOLATIONS;
 document.querySelectorAll(".maxText").forEach(n => n.innerText = CONFIG.MAX_VIOLATIONS);

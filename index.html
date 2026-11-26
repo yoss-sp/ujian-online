@@ -103,7 +103,7 @@ footer{color:var(--muted);font-size:12px;padding:12px}
 .btn-gray{background:transparent!important;color:var(--ink)!important;border:1.5px solid var(--line)!important}
 .reason{background:var(--bad-bg);color:var(--bad-ink);padding:12px 14px;border-radius:12px;font-weight:700;font-size:14px;line-height:1.5;margin:10px 0}
 #timeupScreen .reason{background:var(--warn-bg);color:var(--warn-ink);border:1px solid var(--warn-line)}
-#passwordError,#finishError,#timeupError{color:var(--bad);font-size:14px;font-weight:600;display:none;margin:8px 0 0}
+#passwordError,#timeupError{color:var(--bad);font-size:14px;font-weight:600;display:none;margin:8px 0 0}
 #timeBanner{display:none;position:fixed;top:calc(var(--vvtop) + var(--barh));left:0;right:0;z-index:60;padding:8px 10px;text-align:center;line-height:1.35;font-weight:700;font-size:13px;color:#fff;background:#d97706}
 </style>
 </head>
@@ -144,7 +144,7 @@ footer{color:var(--muted);font-size:12px;padding:12px}
       <li><span><b>Jangan memutus internet.</b> Koneksi harus tetap tersambung selama ujian.</span></li>
     </ul>
     <div class="callout">Setiap pelanggaran membunyikan alarm, mengunci ujian, dan dicatat. Pelanggaran ke-<span class="maxText"></span> menghentikan ujian.</div>
-    <div class="info"><b>Cara menyelesaikan:</b> kirim jawaban di form, tekan <b>Selesai</b>, lalu serahkan HP ke pengawas untuk dikonfirmasi dengan kode selesai.</div>
+    <div class="info"><b>Cara menyelesaikan:</b> kirim jawaban di form sampai muncul tulisan "Jawaban Anda telah direkam", lalu tekan tombol <b>Selesai</b> di bagian atas layar.</div>
     <label class="check"><input type="checkbox" id="agree" onchange="checkReady()"> <span>Saya sudah membaca dan menyetujui aturan di atas.</span></label>
   </section>
 
@@ -184,13 +184,11 @@ footer{color:var(--muted);font-size:12px;padding:12px}
 
 <div id="finishScreen">
   <div class="lock-card">
-    <div class="lock-icon">📱</div>
+    <div class="lock-icon">✅</div>
     <h2>Selesai ujian?</h2>
     <p>Pastikan jawaban sudah dikirim (muncul tulisan "Jawaban Anda telah direkam").</p>
-    <p><b>Serahkan HP ke pengawas.</b> Pengawas akan memasukkan kode selesai.</p>
-    <input class="field" type="password" id="finishCode" placeholder="Kode selesai (diisi pengawas)" autocomplete="off">
-    <button onclick="confirmFinish()">Konfirmasi selesai</button>
-    <p id="finishError">Kode salah!</p>
+    <p>Setelah menekan <b>Ya, selesai</b>, ujian ditutup dan tidak bisa dibuka lagi.</p>
+    <button onclick="confirmFinish()">Ya, selesai</button>
     <button class="btn-gray" onclick="closeFinish()">Kembali mengerjakan</button>
   </div>
 </div>
@@ -230,7 +228,8 @@ const F_CONTOH = "https://docs.google.com/forms/d/e/1FAIpQLSdxRKQ4IufhwqjrOT33aS
 const CONFIG = {
   ADMIN_PASSWORD: "UJIAN2026",        // password buka kunci biasa
   FINAL_PASSWORD: "PENGAWAS2026",     // password jika pelanggaran sudah mencapai batas
-  FINISH_PASSWORD: "SELESAI2026",      // kode selesai: dimasukkan pengawas setelah HP diserahkan
+  FINISH_PASSWORD: "SELESAI2026",      // HANYA dipakai di layar terkunci / waktu habis: pengawas bisa mengakhiri ujian dengan kode ini.
+                                      // (Tombol Selesai milik siswa tidak lagi meminta kode.)
   TIMEUP_PASSWORD: "WAKTU2026",       // password pengawas untuk membuka lagi setelah waktu + masa tambahan habis
   EXTRA_MINUTES: 10,                  // tambahan waktu (menit) yang diberikan saat pengawas membuka lagi
                                       // (di layar waktu habis, memasukkan FINISH_PASSWORD akan menyelesaikan ujian)
@@ -266,7 +265,7 @@ const CONFIG = {
     "7": {
       pancasila: "https://docs.google.com/forms/d/e/1FAIpQLSczRR1it1M0xMwxYnoxY77z_wdV3LM1RBnjxMcFkZryvFQwzw/viewform?usp=header",
       ind: "https://docs.google.com/forms/d/e/1FAIpQLSeo014-lI9WJhRHwT4_DRCjV8BVMvoC62YhRBgQ7aeJRxixaA/viewform?usp=header",
-      mtk: "hhttps://docs.google.com/forms/d/e/1FAIpQLSfdC9krEKIqwh9l7q4eEIuoQRz_USXeTnanQL2X3gg0AsU_gg/viewform?usp=header",
+      mtk: "https://docs.google.com/forms/d/e/1FAIpQLSfdC9krEKIqwh9l7q4eEIuoQRz_USXeTnanQL2X3gg0AsU_gg/viewform?usp=header",
       ipa: "https://docs.google.com/forms/d/e/1FAIpQLSd7nFudndeFUUiQaKKauxvRU9GVeGSnx6OEzlC-fXP-wEllZA/viewform?usp=header",
       ips: "https://docs.google.com/forms/d/e/1FAIpQLSfd9rzGfyLkKfjaxDpT3OBO16i9AdjebsXFU5w4MIkjnjWqaQ/viewform?usp=header",
       pak: "https://docs.google.com/forms/d/e/1FAIpQLSeCdavk9n30n2U1fT4WGXbmG5wp57C-5ipXkmxYcfPScsWBlQ/viewform?usp=header",
@@ -297,7 +296,7 @@ const CONFIG = {
       mtk: "https://docs.google.com/forms/d/e/1FAIpQLSf77QZRC0R6hj-Om9b2kaMkebCphJhTBJunw4Lqwvi1jgcF9Q/viewform?usp=header",
       ipa: "https://docs.google.com/forms/d/e/1FAIpQLSc9HVaI5sG8LHCH2VIABR95cM9kFCQ6xZMEN0RttSuPfA-4CQ/viewform?usp=header",
       ips: "https://docs.google.com/forms/d/e/1FAIpQLSd4Z4Lucu6dZ1ECzXXdqc-mFq5DzBl_Oi1b-lq3y4mlwWde0A/viewform?usp=header",
-      pak: "hhttps://docs.google.com/forms/d/e/1FAIpQLScfsQ3nY2FbmaiPQuH0maX9C2r3rei9-eB3XOWPCcDBNG9DmQ/viewform?usp=header",
+      pak: "https://docs.google.com/forms/d/e/1FAIpQLScfsQ3nY2FbmaiPQuH0maX9C2r3rei9-eB3XOWPCcDBNG9DmQ/viewform?usp=header",
       sbp: "https://docs.google.com/forms/d/e/1FAIpQLScMLHS-tQBXBFW3G9irXqQxmQ69AOZpUPKWPatKF--Ax_10lA/viewform?usp=header",
       pjok: "https://docs.google.com/forms/d/e/1FAIpQLScPdlhKLlXD38TQcbNqpLHhBexvLerPnM4OfH0-6NvPZ3Qi2g/viewform?usp=header",
       sunda: "https://docs.google.com/forms/d/e/1FAIpQLSewLxS-4xilDtiLRODft5gQt4CR1p3723-yp7ofS1GznOFAug/viewform?usp=header",
@@ -633,26 +632,20 @@ async function unlockExam(){
 $("unlockPassword").addEventListener("keydown", e => { if(e.key === "Enter") unlockExam(); });
 
 // =====================================================
-// LAPOR KE GOOGLE SHEETS (opsional)
+// SELESAI (tanpa kode pengawas) & LAPOR KE GOOGLE SHEETS (opsional)
 // =====================================================
-let finishFails = 0;
+// Tombol "✓ Selesai" membuka konfirmasi singkat (Ya / Kembali) agar tidak tertekan tidak sengaja.
+// Setelah "Ya, selesai" ujian langsung ditutup. Untuk benar-benar tanpa konfirmasi,
+// ganti isi openFinish() dengan: confirmFinish();
 function openFinish(){
-  if(!S.started || S.finished || S.locked) return;
+  if(!S.started || S.finished || S.locked || S.timeUp) return;
   $("finishScreen").style.display = "flex";
-  $("finishCode").value = ""; $("finishError").style.display = "none";
 }
 function closeFinish(){ $("finishScreen").style.display = "none"; }
 function confirmFinish(){
-  if($("finishCode").value.trim() !== CONFIG.FINISH_PASSWORD){
-    finishFails++;
-    $("finishError").style.display = "block"; $("finishCode").value = "";
-    if(finishFails >= 3) report("kode-selesai-salah", "Salah memasukkan kode selesai " + finishFails + "x");
-    return;
-  }
   closeFinish();
-  finishExam("Ujian selesai dan dikonfirmasi pengawas. Terima kasih, silakan keluar.");
+  finishExam("Ujian selesai. Terima kasih, silakan keluar.");
 }
-$("finishCode").addEventListener("keydown", e => { if(e.key === "Enter") confirmFinish(); });
 
 function report(type, detail){
   if(!CONFIG.WEBHOOK_URL) return;

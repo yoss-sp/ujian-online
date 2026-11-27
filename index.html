@@ -124,13 +124,18 @@ footer{color:var(--muted);font-size:12px;padding:12px}
 
   <section class="pane on" id="p1">
     <h2>Data dan mata pelajaran</h2>
-    <p class="sub">Tulis nama sesuai data sekolah, lalu pilih kelas dan mata pelajaran.</p>
+    <p class="sub">Tulis nama sesuai data sekolah, pilih kelas dan mata pelajaran, lalu masukkan password dari pengawas.</p>
     <label class="lb" for="nama">Nama lengkap</label>
     <input class="field" type="text" id="nama" maxlength="50" placeholder="Contoh: Maria Putri Lestari" autocomplete="off" autocapitalize="words" enterkeyhint="done" oninput="checkReady()">
     <label class="lb" for="kelas">Kelas</label>
-    <select class="field" id="kelas" onchange="fillMapel()"><option value="">-- Pilih kelas --</option></select>
+    <select class="field" id="kelas" autocomplete="off" onchange="fillMapel()"><option value="">-- Pilih kelas --</option></select>
     <label class="lb" for="mapel">Mata pelajaran</label>
-    <select class="field" id="mapel" onchange="checkReady()"><option value="">-- Pilih kelas terlebih dahulu --</option></select>
+    <select class="field" id="mapel" autocomplete="off" onchange="checkReady()"><option value="">-- Pilih kelas terlebih dahulu --</option></select>
+    <div id="passWrap" style="display:none">
+      <label class="lb" for="mapelPass">Password mata pelajaran</label>
+      <input class="field" type="password" id="mapelPass" maxlength="30" placeholder="Diberikan oleh pengawas di ruang ujian" autocomplete="off" autocapitalize="characters" enterkeyhint="next" oninput="document.getElementById('passErr').style.display='none';checkReady()">
+      <p id="passErr" style="display:none;color:var(--bad);font-size:14px;font-weight:600;margin:8px 0 0">Password salah. Tanyakan ke pengawas.</p>
+    </div>
     <p class="note">Waktu ujian berjalan sejak kamu menekan Mulai ujian dan tidak bisa dijeda.</p>
   </section>
 
@@ -235,7 +240,7 @@ const CONFIG = {
                                       // (di layar waktu habis, memasukkan FINISH_PASSWORD akan menyelesaikan ujian)
   WARN_MINUTES: [10, 5, 1],           // peringatan sisa waktu (menit)
   GRACE_SECONDS: 60,                  // waktu tambahan setelah timer habis, khusus untuk menekan KIRIM
-  FOCUS_GRACE_SECONDS: 15,            // toleransi fokus hilang (dialog Google Form saat Kirim)
+  FOCUS_GRACE_SECONDS: 30,            // toleransi fokus hilang (dialog Google Form saat Kirim). Selama keyboard HP terbuka, fokus hilang tidak dihitung.
   MAX_VIOLATIONS: 3,                  // batas pelanggaran
   // DEFAULT_FORM dipakai hanya jika FORMS tidak diisi. Link pintas: ?kelas=7&mapel=mtk mengunci pilihan kelas/mapel.
   DEFAULT_FORM: "https://docs.google.com/forms/d/e/1FAIpQLScNVGLwyNF-BsAChJkrHLZBaL8dLOBmL4Z1mkWfu3PkxeMO2A/viewform?embedded=true",
@@ -303,6 +308,52 @@ const CONFIG = {
       ing: "https://docs.google.com/forms/d/e/1FAIpQLSfpztYKO61hETbcEa4k3UiD_iWmrIxKiN4SEI4-1z2y0-SP5A/viewform?usp=header",
       mandarin: "https://docs.google.com/forms/d/e/1FAIpQLSfHXgSFhsazt6x_Zb0p9hHNuFi87m3h7kQN0Lw1yAKHjHfF2Q/viewform?usp=header",
       informatika: "https://docs.google.com/forms/d/e/1FAIpQLSc-cAzcHBDDTkgQv5_JtSfCsg9lZOqytX9iLEUwffPtd3ecLw/viewform?usp=header"
+    }
+  },
+  // Password mapel PER KELAS (huruf besar/kecil tidak dibedakan). Diumumkan pengawas di ruang ujian.
+  // Kosongkan ("") atau hapus baris mapel kalau tidak perlu password. GANTI contoh ini sebelum dipakai.
+  PASSWORDS: {
+    "7": {
+      pancasila: "PCS71604",
+      ind: "IND75286",
+      mtk: "MTK75953",
+      ipa: "IPA79864",
+      ips: "IPS73410",
+      pak: "PAK73735",
+      sbp: "SBP75649",
+      pjok: "PJK77448",
+      sunda: "SND74886",
+      ing: "ING75391",
+      mandarin: "MDR72417",
+      informatika: "INF73649"
+    },
+    "8": {
+      pancasila: "PCS88610",
+      ind: "IND81559",
+      mtk: "MTK83683",
+      ipa: "IPA84342",
+      ips: "IPS81668",
+      pak: "PAK89030",
+      sbp: "SBP83469",
+      pjok: "PJK81457",
+      sunda: "SND81894",
+      ing: "ING88314",
+      mandarin: "MDR89466",
+      informatika: "INF89934"
+    },
+    "9": {
+      pancasila: "PCS95492",
+      ind: "IND98771",
+      mtk: "MTK91564",
+      ipa: "IPA99619",
+      ips: "IPS91513",
+      pak: "PAK98794",
+      sbp: "SBP94951",
+      pjok: "PJK99376",
+      sunda: "SND93768",
+      ing: "ING97303",
+      mandarin: "MDR95129",
+      informatika: "INF93536"
     }
   },
   // Kode Sesi otomatis diisi ke pertanyaan "Kode Sesi" di Google Form (siswa tidak perlu mengetik).
@@ -414,8 +465,17 @@ function testAlarm(){
 // MULAI UJIAN
 // =====================================================
 function cleanName(){ return ($("nama").value || "").replace(/\s+/g, " ").trim(); }
+let lastMkPass = "";
+function needPass(){ const t = CONFIG.PASSWORDS && CONFIG.PASSWORDS[$("kelas").value]; const v = t && t[$("mapel").value]; return v ? String(v) : ""; }
+function passOk(){ const need = needPass(); return !need || $("mapelPass").value.trim().toLowerCase() === need.toLowerCase(); }
+function syncPass(){
+  const mk = $("kelas").value + "|" + $("mapel").value;
+  if(mk !== lastMkPass){ lastMkPass = mk; $("mapelPass").value = ""; $("passErr").style.display = "none"; }   // ganti kelas/mapel = password diisi ulang
+  $("passWrap").style.display = needPass() ? "block" : "none";
+}
 function checkReady(){
-  $("startExamButton").disabled = !($("volumeConfirmed").checked && volumeTested && $("agree").checked && cleanName().length >= 3 && !!$("kelas").value && !!$("mapel").value);
+  syncPass();
+  $("startExamButton").disabled = !($("volumeConfirmed").checked && volumeTested && $("agree").checked && cleanName().length >= 3 && !!$("kelas").value && !!$("mapel").value && passOk());
 }
 
 async function startExam(){
@@ -425,6 +485,7 @@ async function startExam(){
   if(!mk || !CONFIG.MAPEL[mk] || !formUrl(kl, mk)){ alert("Pilih mata pelajaran terlebih dahulu."); return; }
   if(cleanName().length < 3){ alert("Isi nama lengkap terlebih dahulu."); return; }
   if(!volumeTested){ alert("Lakukan tes suara terlebih dahulu."); return; }
+  if(!passOk()){ alert("Password mata pelajaran salah."); return; }
   const prev = load(keyFor(mk));
   if(prev && prev.finished){ alert("Mata pelajaran ini sudah selesai dikerjakan di perangkat ini."); return; }
   KEY = keyFor(mk); S = fresh(); lsSet(ACTIVE, mk);
@@ -463,16 +524,24 @@ function fillMapel(){
   checkReady();
 }
 
-function loadForm(){
-  const f = $("exam");
-  if(f.getAttribute("src")) return;
+// alamat form yang dimuat di kotak ujian. Selalu memakai embedded=true (mode tanam resmi Google Form,
+// lebih stabil di dalam iframe).
+function formSrc(){
   const m = CONFIG.MAPEL[S.mapel] || {};
   let url = formUrl(S.kelas, S.mapel) || CONFIG.DEFAULT_FORM;
   const entry = m.entry || CONFIG.FORM_SID_ENTRY;
-  if(entry && S.sid){
-    try{ const u = new URL(url); u.searchParams.set("usp", "pp_url"); u.searchParams.set(entry, S.sid); url = u.toString(); }catch(e){}
-  }
-  f.src = url;
+  try{
+    const u = new URL(url);
+    if(entry && S.sid){ u.searchParams.set("usp", "pp_url"); u.searchParams.set(entry, S.sid); }
+    u.searchParams.set("embedded", "true");
+    url = u.toString();
+  }catch(e){}
+  return url;
+}
+function loadForm(){
+  const f = $("exam");
+  if(f.getAttribute("src")) return;
+  f.src = formSrc();
 }
 function showExam(){
   loadForm();
@@ -671,8 +740,19 @@ window.addEventListener("pagehide", () => violation("Halaman ditutup/ditinggalka
 // jadi pelanggaran baru dihitung jika fokus hilang lebih dari FOCUS_GRACE_SECONDS.
 // (Pindah tab/aplikasi di HP tetap terdeteksi langsung lewat visibilitychange di atas.)
 let focusLostAt = 0;
+// keyboard HP terbuka = tinggi area terlihat menyusut jauh dari tinggi terbesar yang pernah tercatat.
+// Saat mengetik di form, sebagian HP menganggap jendela "kehilangan fokus"; itu bukan pelanggaran.
+let vvMax = 0;
+function keyboardOpen(){
+  const vv = window.visualViewport;
+  if(!vv) return false;
+  vvMax = Math.max(vvMax, vv.height);
+  return vv.height < vvMax * 0.85;
+}
+keyboardOpen();
 setInterval(() => {
   if(!S.started || S.locked || S.finished || S.timeUp || document.hidden){ focusLostAt = 0; return; }
+  if(keyboardOpen()){ focusLostAt = 0; return; }
   if(document.hasFocus()){ focusLostAt = 0; return; }
   if(!focusLostAt){ focusLostAt = Date.now(); return; }
   if(Date.now() - focusLostAt > CONFIG.FOCUS_GRACE_SECONDS * 1000){
@@ -707,7 +787,7 @@ let baseW = innerWidth, baseH = innerHeight;
 window.addEventListener("resize", () => {
   if(!S.started || S.locked) return;
   // rotasi layar: hanya perbarui acuan. Tinggi diabaikan karena keyboard HP mengubah tinggi layar.
-  if((innerWidth > innerHeight) !== (baseW > baseH)){ baseW = innerWidth; baseH = innerHeight; return; }
+  if((innerWidth > innerHeight) !== (baseW > baseH)){ baseW = innerWidth; baseH = innerHeight; vvMax = 0; return; }
   if(Math.abs(innerWidth - baseW) / baseW > .25) violation("Ukuran jendela berubah (split screen/floating)");
 });
 
@@ -759,6 +839,15 @@ on("visibilitychange", () => { if(!document.hidden && S.started && !S.locked) ke
   if(pickM && CONFIG.MAPEL[pickM]) lockedMapel = pickM;                                          // ?mapel=mtk mengunci mapel
   fillMapel();
 })();
+// Perbaikan: halaman dibuka dari riwayat/tab lama -> browser memulihkan pilihan kelas tanpa memicu "change",
+// sehingga daftar mapel tetap kosong. Daftar diisi ulang dari kelas yang sedang terpilih.
+function resyncMapel(){ if(!S.started && !S.finished) fillMapel(); }
+window.addEventListener("pageshow", resyncMapel);                 // termasuk saat dipulihkan dari riwayat (bfcache)
+setTimeout(resyncMapel, 400);                                      // pemulihan isian oleh browser kadang terlambat
+$("kelas").addEventListener("input", fillMapel);                   // sebagian browser HP hanya memicu "input"
+["focus","mousedown","touchstart"].forEach(t => $("mapel").addEventListener(t, () => {
+  if($("kelas").value && $("mapel").options.length <= 1) fillMapel();   // pengaman: daftar masih kosong padahal kelas sudah dipilih
+}, {passive:true}));
 $("vmax").innerText = CONFIG.MAX_VIOLATIONS;
 document.querySelectorAll(".maxText").forEach(n => n.innerText = CONFIG.MAX_VIOLATIONS);
 if(S.finished){ finishExam("Ujian sudah selesai.", true); }
@@ -780,13 +869,13 @@ else if(S.started){
   const N = 4; let cur = 1;
   const nameOk = () => el("nama").value.replace(/\s+/g, " ").trim().length >= 3;
   const valid = [
-    () => nameOk() && !!el("kelas").value && !!el("mapel").value,
+    () => nameOk() && !!el("kelas").value && !!el("mapel").value && (!needPass() || el("mapelPass").value.trim().length > 0),
     () => el("agree").checked,
     () => volumeTested && el("volumeConfirmed").checked,
     () => true
   ];
   const hints = [
-    "Isi nama (minimal 3 huruf), kelas, dan mata pelajaran.",
+    "Isi nama (minimal 3 huruf), kelas, mata pelajaran, dan password mapel.",
     "Centang persetujuan aturan untuk lanjut.",
     "Putar suara tes, lalu centang konfirmasi.",
     "Waktu ujian langsung berjalan setelah tombol ditekan."
@@ -815,7 +904,15 @@ else if(S.started){
     }
   }
   function go(n){ cur = Math.max(1, Math.min(N, n)); render(); window.scrollTo(0, 0); }
-  window.wizNext = () => { if(valid[cur - 1]()) go(cur + 1); };
+  window.wizNext = () => {
+    if(!valid[cur - 1]()) return;
+    if(cur === 1 && !passOk()){
+      el("passErr").style.display = "block"; el("mapelPass").value = ""; el("mapelPass").focus();
+      window.checkReady();
+      return;
+    }
+    go(cur + 1);
+  };
   window.wizBack = () => go(cur - 1);
 
   const orig = window.checkReady;
